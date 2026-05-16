@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🔥 Forest Fire Detection System</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+
+  <!-- Leaflet Maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+  <!-- ─── HEADER ─────────────────────────── -->
+  <header class="header">
+    <div class="header-left">
+      <span class="fire-icon">🔥</span>
+      <div>
+        <h1>FOREST FIRE DETECTION</h1>
+        <p class="subtitle">SISTEMA DE DETECCIÓN TEMPRANA — VALPARAÍSO, CHILE</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-indicator">
+        <span class="pulse-dot"></span>
+        <span id="system-status">SISTEMA ACTIVO</span>
+      </div>
+      <div class="clock" id="clock"></div>
+    </div>
+  </header>
+
+  <!-- ─── STATS BAR ──────────────────────── -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-value" id="total-sensors">0</span>
+      <span class="stat-label">SENSORES ACTIVOS</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value alert-red" id="active-alerts">0</span>
+      <span class="stat-label">ALERTAS ACTIVAS</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value alert-yellow" id="total-readings">0</span>
+      <span class="stat-label">LECTURAS HOY</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value alert-green" id="zones-safe">0</span>
+      <span class="stat-label">ZONAS SEGURAS</span>
+    </div>
+  </div>
+
+  <!-- ─── MAIN GRID ──────────────────────── -->
+  <main class="main-grid">
+
+    <!-- MAPA -->
+    <section class="card map-card">
+      <div class="card-header">
+        <span class="card-title">📡 MAPA DE SENSORES EN TIEMPO REAL</span>
+        <span class="card-badge">LIVE</span>
+      </div>
+      <div id="map"></div>
+    </section>
+
+    <!-- ALERTAS ACTIVAS -->
+    <section class="card alerts-card">
+      <div class="card-header">
+        <span class="card-title">🚨 ALERTAS ACTIVAS</span>
+        <span class="card-badge red">URGENTE</span>
+      </div>
+      <div class="alerts-list" id="alerts-list">
+        <div class="no-alerts">
+          <span>✅ Sin alertas activas</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- GRÁFICO TEMPERATURA -->
+    <section class="card chart-card">
+      <div class="card-header">
+        <span class="card-title">🌡️ TEMPERATURA EN TIEMPO REAL</span>
+      </div>
+      <canvas id="tempChart"></canvas>
+    </section>
+
+    <!-- GRÁFICO HUMO -->
+    <section class="card chart-card">
+      <div class="card-header">
+        <span class="card-title">💨 NIVEL DE HUMO (PPM)</span>
+      </div>
+      <canvas id="smokeChart"></canvas>
+    </section>
+
+    <!-- HISTORIAL -->
+    <section class="card history-card">
+      <div class="card-header">
+        <span class="card-title">📋 HISTORIAL DE EVENTOS</span>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>FECHA</th>
+              <th>SENSOR</th>
+              <th>TEMP °C</th>
+              <th>HUMO PPM</th>
+              <th>NIVEL</th>
+            </tr>
+          </thead>
+          <tbody id="history-body">
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ESTADO SENSORES -->
+    <section class="card sensors-card">
+      <div class="card-header">
+        <span class="card-title">🔧 ESTADO DE NODOS</span>
+      </div>
+      <div class="sensors-list" id="sensors-list">
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/map.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/alerts.js"></script>
+
+</body>
+</html>

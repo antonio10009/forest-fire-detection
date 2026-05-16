@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from backend.database import engine, Base
 from backend.models.sensor import Sensor, Lectura, Alerta
 from backend.routers import sensors, alerts
@@ -11,8 +12,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# CORS para que el dashboard pueda conectarse
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(sensors.router, prefix="/api/sensors", tags=["Sensores"])
-app.include_router(alerts.router, prefix="/api/alerts", tags=["Alertas"])
+app.include_router(alerts.router,  prefix="/api/alerts",  tags=["Alertas"])
 
 @app.get("/")
 def root():
