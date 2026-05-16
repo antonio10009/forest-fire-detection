@@ -3,7 +3,7 @@ import random
 import time
 from datetime import datetime
 
-API_URL   = "http://127.0.0.1:8000"
+API_URL = "https://forest-fire-detection-044r.onrender.com"
 SENSOR_ID = 1
 INTERVALO = 5  # segundos entre lecturas
 
