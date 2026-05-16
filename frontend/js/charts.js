@@ -1,8 +1,8 @@
 // ─── GRÁFICOS CHART.JS ─────────────────
+const API_CHARTS = "https://forest-fire-detection-044r.onrender.com";
 
 const labels = Array.from({length: 10}, (_, i) => `T-${9-i}`);
 
-// Gráfico Temperatura
 const tempCtx = document.getElementById('tempChart').getContext('2d');
 const tempChart = new Chart(tempCtx, {
   type: 'line',
@@ -31,7 +31,6 @@ const tempChart = new Chart(tempCtx, {
   }
 });
 
-// Gráfico Humo
 const smokeCtx = document.getElementById('smokeChart').getContext('2d');
 const smokeChart = new Chart(smokeCtx, {
   type: 'line',
@@ -60,10 +59,9 @@ const smokeChart = new Chart(smokeCtx, {
   }
 });
 
-// Actualizar gráficos con lecturas reales
 async function actualizarGraficos() {
   try {
-    const res  = await fetch('http://127.0.0.1:8000/api/sensors/1/lecturas');
+    const res  = await fetch(`${API_CHARTS}/api/sensors/1/lecturas`);
     const data = await res.json();
 
     const ultimas = data.slice(-10);
@@ -73,15 +71,14 @@ async function actualizarGraficos() {
       new Date(l.registrado_en).toLocaleTimeString('es-CL')
     );
 
-    tempChart.data.labels          = times;
+    tempChart.data.labels           = times;
     tempChart.data.datasets[0].data = temps;
     tempChart.update();
 
-    smokeChart.data.labels          = times;
+    smokeChart.data.labels           = times;
     smokeChart.data.datasets[0].data = humos;
     smokeChart.update();
 
-    // Stats lecturas
     document.getElementById('total-readings').textContent = data.length;
 
   } catch (err) {
@@ -89,26 +86,19 @@ async function actualizarGraficos() {
   }
 }
 
-actualizarGraficos();
-setInterval(actualizarGraficos, 10000);
-
-// ─── ESTADÍSTICAS DETALLADAS ───────────
 async function cargarEstadisticas() {
   try {
-    const [resumen, niveles, tempProm, zonaCritica, alertasDia] =
+    const [resumen, tempProm, zonaCritica, alertasDia] =
       await Promise.all([
-        fetch('http://127.0.0.1:8000/api/stats/resumen').then(r => r.json()),
-        fetch('http://127.0.0.1:8000/api/stats/niveles').then(r => r.json()),
-        fetch('http://127.0.0.1:8000/api/stats/temperatura-promedio').then(r => r.json()),
-        fetch('http://127.0.0.1:8000/api/stats/zona-critica').then(r => r.json()),
-        fetch('http://127.0.0.1:8000/api/stats/alertas-por-dia').then(r => r.json()),
+        fetch(`${API_CHARTS}/api/stats/resumen`).then(r => r.json()),
+        fetch(`${API_CHARTS}/api/stats/temperatura-promedio`).then(r => r.json()),
+        fetch(`${API_CHARTS}/api/stats/zona-critica`).then(r => r.json()),
+        fetch(`${API_CHARTS}/api/stats/alertas-por-dia`).then(r => r.json()),
       ]);
 
-    // Resumen
     document.getElementById('alertas-hoy').textContent    = resumen.alertas_hoy;
     document.getElementById('total-lecturas').textContent = resumen.total_lecturas;
 
-    // Temperatura promedio
     if (tempProm.length > 0) {
       document.getElementById('temp-promedio').textContent =
         tempProm[0].temp_promedio + '°C';
@@ -118,12 +108,10 @@ async function cargarEstadisticas() {
         tempProm[0].humo_promedio + ' PPM';
     }
 
-    // Zona crítica
     if (zonaCritica.nombre) {
       document.getElementById('zona-critica').textContent = zonaCritica.nombre;
     }
 
-    // Gráfico alertas por día
     if (alertasDia.length > 0) {
       const ctx = document.getElementById('alertasDiaChart').getContext('2d');
       new Chart(ctx, {
@@ -160,5 +148,7 @@ async function cargarEstadisticas() {
   }
 }
 
+actualizarGraficos();
 cargarEstadisticas();
-setInterval(cargarEstadisticas, 30000);
+setInterval(actualizarGraficos,  10000);
+setInterval(cargarEstadisticas,  30000);

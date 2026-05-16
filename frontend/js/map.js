@@ -1,4 +1,6 @@
 // ─── MAPA LEAFLET ──────────────────────
+const API = "https://forest-fire-detection-044r.onrender.com";
+
 const map = L.map('map').setView([-33.0472, -71.6127], 13);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -6,7 +8,6 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   maxZoom: 19
 }).addTo(map);
 
-// Iconos personalizados
 const iconVerde = L.divIcon({
   className: '',
   html: `<div style="
@@ -33,7 +34,6 @@ const iconRojo = L.divIcon({
     width:20px; height:20px; border-radius:50%;
     background:#ff3d3d; border:2px solid #fff;
     box-shadow:0 0 20px rgba(255,61,61,0.9);
-    animation:pulse 1s infinite;
   "></div>`,
   iconSize: [20, 20]
 });
@@ -44,25 +44,21 @@ function getIcon(nivel) {
   return iconVerde;
 }
 
-// Marcadores activos
 const markers = {};
 
 async function cargarSensores() {
   try {
-    const res  = await fetch('http://127.0.0.1:8000/api/sensors/');
+    const res  = await fetch(`${API}/api/sensors/`);
     const data = await res.json();
 
-    // Stats bar
     document.getElementById('total-sensors').textContent = data.length;
     document.getElementById('zones-safe').textContent =
       data.filter(s => s.activo).length;
 
-    // Lista de nodos
     const lista = document.getElementById('sensors-list');
     lista.innerHTML = '';
 
     data.forEach(sensor => {
-      // Marcador en mapa
       const nivel = sensor.ultimo_nivel || 'VERDE';
       if (markers[sensor.id]) {
         markers[sensor.id].setLatLng([sensor.latitud, sensor.longitud]);
@@ -81,7 +77,6 @@ async function cargarSensores() {
         .addTo(map);
       }
 
-      // Item en lista de nodos
       const item = document.createElement('div');
       item.className = 'sensor-item';
       item.innerHTML = `

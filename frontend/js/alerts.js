@@ -1,8 +1,9 @@
 // ─── ALERTAS EN TIEMPO REAL ────────────
+const API_ALERTS = "https://forest-fire-detection-044r.onrender.com";
 
 async function cargarAlertas() {
   try {
-    const res  = await fetch('http://127.0.0.1:8000/api/alerts/');
+    const res  = await fetch(`${API_ALERTS}/api/alerts/`);
     const data = await res.json();
 
     document.getElementById('active-alerts').textContent = data.length;
@@ -18,7 +19,6 @@ async function cargarAlertas() {
       return;
     }
 
-    // Efecto visual en toda la página si hay alerta
     document.body.classList.add('alerta-activa');
 
     lista.innerHTML = '';
@@ -46,7 +46,7 @@ async function cargarAlertas() {
 
 async function desactivarAlerta(id) {
   try {
-    await fetch(`http://127.0.0.1:8000/api/alerts/${id}/desactivar`, {
+    await fetch(`${API_ALERTS}/api/alerts/${id}/desactivar`, {
       method: 'PUT'
     });
     cargarAlertas();
@@ -57,18 +57,18 @@ async function desactivarAlerta(id) {
 
 async function cargarHistorial() {
   try {
-    const resl = await fetch('http://127.0.0.1:8000/api/sensors/1/lecturas');
-    const data = await resl.json();
+    const res  = await fetch(`${API_ALERTS}/api/sensors/1/lecturas`);
+    const data = await res.json();
 
     const tbody = document.getElementById('history-body');
     tbody.innerHTML = '';
 
     const ultimas = data.slice(-20).reverse();
     ultimas.forEach(item => {
-      const fecha  = new Date(item.registrado_en).toLocaleString('es-CL');
-      const nivel  = item.nivel_alerta || 'VERDE';
+      const fecha      = new Date(item.registrado_en).toLocaleString('es-CL');
+      const nivel      = item.nivel_alerta || 'VERDE';
       const badgeClass = `badge-${nivel.toLowerCase()}`;
-      const tr     = document.createElement('tr');
+      const tr         = document.createElement('tr');
       tr.innerHTML = `
         <td>${fecha}</td>
         <td>Sensor #${item.sensor_id}</td>
@@ -86,7 +86,6 @@ async function cargarHistorial() {
   }
 }
 
-// Reloj
 function actualizarReloj() {
   const ahora = new Date();
   document.getElementById('clock').textContent =
