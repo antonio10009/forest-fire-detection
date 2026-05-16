@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.sensor import Sensor, Lectura, Alerta
 from backend.schemas.schemas import SensorCreate, SensorResponse, LecturaCreate, LecturaResponse
+from backend.notifications import disparar_alerta_incendio
 from typing import List
 
 router = APIRouter()
@@ -43,14 +44,24 @@ def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
     nueva_lectura = Lectura(**lectura.model_dump(), nivel_alerta=nivel)
     db.add(nueva_lectura)
 
-    # Si es ROJO crear alerta automática
+    # Si es ROJO crear alerta y notificar
     if nivel == "ROJO":
+        sensor = db.query(Sensor).filter(Sensor.id == lectura.sensor_id).first()
         alerta = Alerta(
             sensor_id=lectura.sensor_id,
             tipo="INCENDIO",
             mensaje=f"🔥 Alerta crítica: Temperatura {lectura.temperatura}°C, Humo {lectura.humo_ppm}ppm"
         )
         db.add(alerta)
+
+        # Disparar SMS y WhatsApp automáticamente
+        if sensor:
+            disparar_alerta_incendio(
+                sensor_nombre=sensor.nombre,
+                ubicacion=sensor.ubicacion,
+                temperatura=lectura.temperatura,
+                humo_ppm=lectura.humo_ppm
+            )
 
     db.commit()
     db.refresh(nueva_lectura)
