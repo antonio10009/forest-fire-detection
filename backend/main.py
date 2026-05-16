@@ -1,10 +1,8 @@
 from fastapi import FastAPI
 from backend.database import engine, Base
-
-# Importar modelos para que SQLAlchemy los registre
 from backend.models.sensor import Sensor, Lectura, Alerta
+from backend.routers import sensors, alerts
 
-# Crear todas las tablas en PostgreSQL
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -12,6 +10,9 @@ app = FastAPI(
     description="Sistema IoT de detección temprana de incendios forestales",
     version="1.0.0"
 )
+
+app.include_router(sensors.router, prefix="/api/sensors", tags=["Sensores"])
+app.include_router(alerts.router, prefix="/api/alerts", tags=["Alertas"])
 
 @app.get("/")
 def root():
