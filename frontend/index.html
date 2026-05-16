@@ -57,6 +57,8 @@
     </div>
   </div>
 
+
+
   <!-- ─── MAIN GRID ──────────────────────── -->
   <main class="main-grid">
 
@@ -127,6 +129,47 @@
       </div>
       <div class="sensors-list" id="sensors-list">
       </div>
+    </section>
+    
+    <!-- ESTADÍSTICAS -->
+    <section class="card stats-detail-card">
+      <div class="card-header">
+        <span class="card-title">📊 ESTADÍSTICAS DETALLADAS</span>
+      </div>
+      <div class="stats-detail-grid">
+
+        <div class="stat-detail-item">
+          <div class="stat-detail-label">ZONA MÁS CRÍTICA</div>
+          <div class="stat-detail-value" id="zona-critica">—</div>
+        </div>
+
+        <div class="stat-detail-item">
+          <div class="stat-detail-label">TEMP. PROMEDIO</div>
+          <div class="stat-detail-value" id="temp-promedio">—</div>
+        </div>
+
+        <div class="stat-detail-item">
+          <div class="stat-detail-label">TEMP. MÁXIMA</div>
+          <div class="stat-detail-value alert-red" id="temp-max">—</div>
+        </div>
+
+        <div class="stat-detail-item">
+          <div class="stat-detail-label">ALERTAS HOY</div>
+          <div class="stat-detail-value alert-red" id="alertas-hoy">—</div>
+        </div>
+
+        <div class="stat-detail-item">
+          <div class="stat-detail-label">HUMO PROMEDIO</div>
+          <div class="stat-detail-value alert-yellow" id="humo-promedio">—</div>
+        </div>
+
+        <div class="stat-detail-item">
+          <div class="stat-detail-label">TOTAL LECTURAS</div>
+          <div class="stat-detail-value" id="total-lecturas">—</div>
+        </div>
+
+    </div>
+    <canvas id="alertasDiaChart" style="padding:1rem; max-height:200px;"></canvas>
     </section>
 
   </main>
