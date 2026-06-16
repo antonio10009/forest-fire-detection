@@ -35,6 +35,8 @@ class LecturaResponse(LecturaBase):
     id: int
     nivel_alerta: str
     registrado_en: datetime
+    latitud: Optional[float] = None
+    longitud: Optional[float] = None
 
     class Config:
         from_attributes = True
