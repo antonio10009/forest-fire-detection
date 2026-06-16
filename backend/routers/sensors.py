@@ -33,35 +33,29 @@ def obtener_sensor(sensor_id: int, db: Session = Depends(get_db)):
 # ─── RECIBIR LECTURA DEL ESP32 ────────────
 @router.post("/lectura", response_model=LecturaResponse)
 def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
-    # Determinar nivel de alerta
     nivel = "VERDE"
     if lectura.temperatura > 50 or lectura.humo_ppm > 200:
         nivel = "AMARILLO"
     if lectura.temperatura > 70 or lectura.humo_ppm > 500:
         nivel = "ROJO"
 
-    # Guardar lectura
     nueva_lectura = Lectura(**lectura.model_dump(), nivel_alerta=nivel)
     db.add(nueva_lectura)
 
-    # Si es ROJO crear alerta y notificar
-    if nivel == "ROJO":
+    # Si llego GPS valido, actualiza la posicion del sensor en el mapa
+    if lectura.latitud is not None and lectura.longitud is not None:
         sensor = db.query(Sensor).filter(Sensor.id == lectura.sensor_id).first()
+        if sensor:
+            sensor.latitud = lectura.latitud
+            sensor.longitud = lectura.longitud
+
+    if nivel == "ROJO":
         alerta = Alerta(
             sensor_id=lectura.sensor_id,
             tipo="INCENDIO",
             mensaje=f"🔥 Alerta crítica: Temperatura {lectura.temperatura}°C, Humo {lectura.humo_ppm}ppm"
         )
         db.add(alerta)
-
-        # Disparar SMS y WhatsApp automáticamente
-        if sensor:
-            disparar_alerta_incendio(
-                sensor_nombre=sensor.nombre,
-                ubicacion=sensor.ubicacion,
-                temperatura=lectura.temperatura,
-                humo_ppm=lectura.humo_ppm
-            )
 
     db.commit()
     db.refresh(nueva_lectura)

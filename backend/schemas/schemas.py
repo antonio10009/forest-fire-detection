@@ -28,7 +28,8 @@ class LecturaBase(BaseModel):
     humedad: float
 
 class LecturaCreate(LecturaBase):
-    pass
+    latitud: Optional[float] = None
+    longitud: Optional[float] = None
 
 class LecturaResponse(LecturaBase):
     id: int
