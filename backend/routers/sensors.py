@@ -44,10 +44,10 @@ def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
 
     # Si llego GPS valido, actualiza la posicion del sensor en el mapa
     if lectura.latitud is not None and lectura.longitud is not None:
-        sensor = db.query(Sensor).filter(Sensor.id == lectura.sensor_id).first()
-        if sensor:
-            sensor.latitud = lectura.latitud
-            sensor.longitud = lectura.longitud
+        sensor_gps = db.query(Sensor).filter(Sensor.id == lectura.sensor_id).first()
+        if sensor_gps:
+            sensor_gps.latitud = lectura.latitud
+            sensor_gps.longitud = lectura.longitud
 
     if nivel == "ROJO":
         alerta = Alerta(
@@ -56,6 +56,16 @@ def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
             mensaje=f"🔥 Alerta crítica: Temperatura {lectura.temperatura}°C, Humo {lectura.humo_ppm}ppm"
         )
         db.add(alerta)
+
+        # Disparar notificaciones WhatsApp y SMS
+        sensor_alerta = db.query(Sensor).filter(Sensor.id == lectura.sensor_id).first()
+        if sensor_alerta:
+            disparar_alerta_incendio(
+                sensor_nombre=sensor_alerta.nombre,
+                ubicacion=sensor_alerta.ubicacion,
+                temperatura=lectura.temperatura,
+                humo_ppm=lectura.humo_ppm
+            )
 
     db.commit()
     db.refresh(nueva_lectura)
