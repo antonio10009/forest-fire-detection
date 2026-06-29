@@ -212,11 +212,12 @@ forest-fire-detection/
 ## 👨‍💻 Autor
 
 **Antonio** — Ingeniería en Informática  
-📍 Valparaíso, Chile  
+📍 Chile  
 🐙 GitHub: [@antonio10009](https://github.com/antonio10009)
 
 ---
 
 ## 📄 Licencia
 
-MIT License — Libre para usar, modificar y distribuir con atribución.
+MIT License — PROHIBIDO COPIAR Y MODIFICAR EL PROYECTO.
+Creado por Antonio Enrique Díaz Abarca
