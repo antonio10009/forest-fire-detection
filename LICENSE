@@ -1,0 +1,111 @@
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
+
+Forest Fire Detection System — Sistema de Detección Temprana de Incendios Forestales
+Copyright (C) 2026 Antonio Enrique Díaz Abarca (antonio10009) — Valparaíso, Chile
+GitHub: https://github.com/antonio10009/forest-fire-detection
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+───────────────────────────────────────────────────────────────────
+TÉRMINOS Y CONDICIONES
+
+0. Definiciones.
+
+"Esta Licencia" se refiere a la versión 3 de la Licencia Pública
+General GNU.
+
+"El Programa" se refiere a cualquier obra susceptible de derechos de
+autor licenciada bajo esta Licencia, incluyendo el sistema IoT de
+detección temprana de incendios forestales, su firmware ESP32, backend
+FastAPI, modelos de inteligencia artificial, y dashboard web.
+
+"Modificar" una obra significa copiar o adaptar total o parcialmente
+la obra de una manera que requiera permiso de derechos de autor,
+distinto de hacer una copia exacta.
+
+1. Código fuente.
+
+El "código fuente" de una obra se refiere a la forma preferida de
+la obra para hacer modificaciones en ella. El "código objeto" se
+refiere a cualquier forma no fuente de una obra.
+
+2. Permisos básicos.
+
+Todos los derechos concedidos bajo esta Licencia se conceden por el
+plazo de los derechos de autor sobre el Programa, y son irrevocables
+siempre que se cumplan las condiciones establecidas. Esta Licencia
+afirma explícitamente su permiso ilimitado para ejecutar el Programa
+sin modificar.
+
+3. Protección de los derechos legales de los usuarios.
+
+Nadie puede imponer términos adicionales que nieguen o restrinjan los
+derechos de los usuarios otorgados por esta Licencia. Cualquier
+derivado de este proyecto debe:
+
+  a) Mantener esta licencia GPL v3 o una compatible.
+  b) Atribuir la autoría original al autor indicado arriba.
+  c) Publicar el código fuente completo de cualquier modificación.
+  d) No comercializar versiones cerradas del software sin autorización
+     expresa del autor original.
+
+4. Transmisión de copias literales.
+
+Puede copiar y distribuir copias literales del código fuente del
+Programa tal como lo recibe, en cualquier medio, siempre que publique
+de forma visible y apropiada en cada copia un aviso de derechos de
+autor adecuado.
+
+5. Transmisión de versiones modificadas.
+
+Puede transmitir una obra basada en el Programa, o las modificaciones
+para producirla a partir del Programa, en la forma de código fuente
+bajo los términos de la sección 4, siempre que cumpla todas estas
+condiciones:
+
+  a) La obra debe incluir avisos destacados que indiquen que usted
+     la modificó y la fecha de dichas modificaciones.
+  b) La obra debe incluir avisos destacados que indiquen que está
+     publicada bajo esta Licencia y las condiciones de la sección 7.
+  c) Debe licenciar la obra entera, como un todo, bajo esta Licencia
+     para cualquiera que entre en posesión de una copia.
+
+6. Sin rendición de garantías.
+
+NO HAY NINGUNA GARANTÍA PARA EL PROGRAMA, EN LA MEDIDA PERMITIDA POR
+LA LEY APLICABLE. SALVO CUANDO SE INDIQUE LO CONTRARIO POR ESCRITO,
+LOS TITULARES DE LOS DERECHOS DE AUTOR Y/U OTRAS PARTES PROPORCIONAN
+EL PROGRAMA "TAL CUAL" SIN GARANTÍA DE NINGÚN TIPO, YA SEA EXPRESA O
+IMPLÍCITA, INCLUYENDO, PERO SIN LIMITARSE A, LAS GARANTÍAS IMPLÍCITAS
+DE COMERCIABILIDAD E IDONEIDAD PARA UN PROPÓSITO PARTICULAR.
+
+───────────────────────────────────────────────────────────────────
+FIN DE LOS TÉRMINOS Y CONDICIONES
+
+Para aplicar estos términos a sus nuevos programas, adjunte el
+siguiente aviso, reemplazando los campos entre corchetes con su
+información. El texto debe ir entre los delimitadores de comentario
+apropiados para la sintaxis del archivo en cuestión.
+
+  Forest Fire Detection System
+  Copyright (C) 2026 Antonio Enrique Díaz Abarca — Valparaíso, Chile
+  
+  This program is free software: you can redistribute it and/or
+  modify it under the terms of the GNU General Public License as
+  published by the Free Software Foundation, either version 3 of
+  the License, or (at your option) any later version.
+
+Para más información sobre la licencia completa, visita:
+https://www.gnu.org/licenses/gpl-3.0.html
