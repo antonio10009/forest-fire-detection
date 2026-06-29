@@ -203,3 +203,167 @@ def detectar_anomalia(datos: PrediccionInput):
         humedad=datos.humedad
     )
 
+"""
+============================================================
+PASO 16 - Endpoint de Predicción de Propagación
+INSTRUCCIÓN: Agrega este código AL FINAL de backend/routers/ml.py
+============================================================
+"""
+
+import math as _math
+
+# ── SCHEMAS ───────────────────────────────────────────────────
+class PropagacionInput(BaseModel):
+    latitud: float
+    longitud: float
+    temperatura: float
+    humedad: float
+    viento_velocidad: float  # km/h
+    viento_direccion: float  # grados (0=Norte, 90=Este, 180=Sur, 270=Oeste)
+    minutos: int = 30        # proyección en minutos (default 30 min)
+
+class PropagacionResponse(BaseModel):
+    zona_riesgo: dict        # GeoJSON Feature con el polígono
+    centro: dict             # lat/lng del foco
+    parametros: dict         # parámetros usados
+    peligro: str
+    area_hectareas: float
+    ros_m_por_min: float
+    mensaje: str
+
+# ── FUNCIÓN DEL MODELO FÍSICO ─────────────────────────────────
+def _calcular_elipse_propagacion(
+    lat: float, lng: float,
+    temperatura: float, humedad: float,
+    viento_velocidad: float, viento_direccion: float,
+    minutos: int
+) -> dict:
+    """
+    Modelo de elipse de propagación basado en McArthur Forest Fire
+    Danger Index, adaptado para condiciones de Chile central.
+    """
+    # Factores de propagación
+    factor_temp   = max(0.1, (temperatura - 10) / 20) if temperatura > 10 else 0.1
+    factor_hum    = max(0.1, (100 - humedad) / 100)
+    factor_viento = 1 + (viento_velocidad / 20)
+
+    # Tasas de propagación en m/min
+    ros_cabeza = 5 * factor_temp * factor_hum * factor_viento
+    ros_flanco = ros_cabeza * 0.4
+    ros_cola   = ros_cabeza * 0.1
+
+    # Distancias en metros
+    dist_cabeza = ros_cabeza * minutos
+    dist_flanco = ros_flanco * minutos
+
+    # Generar polígono elíptico rotado según dirección del viento
+    dir_rad = _math.radians(viento_direccion)
+    metros_por_lat = 111320
+    metros_por_lng = 111320 * _math.cos(_math.radians(lat))
+
+    puntos = []
+    for i in range(36):
+        angulo = 2 * _math.pi * i / 36
+        if _math.cos(angulo) >= 0:
+            rx = dist_cabeza * _math.cos(angulo)
+        else:
+            rx = (ros_cola * minutos) * abs(_math.cos(angulo)) * (-1)
+        ry = dist_flanco * _math.sin(angulo)
+        x_rot = rx * _math.cos(dir_rad) - ry * _math.sin(dir_rad)
+        y_rot = rx * _math.sin(dir_rad) + ry * _math.cos(dir_rad)
+        puntos.append([
+            lng + (x_rot / metros_por_lng),
+            lat + (y_rot / metros_por_lat)
+        ])
+    puntos.append(puntos[0])
+
+    area_ha = (_math.pi * dist_cabeza * dist_flanco) / 10000
+
+    return {
+        "ros_cabeza": round(ros_cabeza, 2),
+        "dist_cabeza": round(dist_cabeza, 0),
+        "dist_flanco": round(dist_flanco, 0),
+        "area_ha": round(area_ha, 2),
+        "puntos": puntos
+    }
+
+# ── ENDPOINT ──────────────────────────────────────────────────
+@router.post("/propagacion", response_model=PropagacionResponse)
+def predecir_propagacion(datos: PropagacionInput):
+    """
+    Predice la zona de propagación de un incendio forestal.
+
+    Usa el modelo de elipse de Huygens basado en McArthur FFDI,
+    el mismo estándar que usa CONAF para predicción de incendios.
+
+    Devuelve un GeoJSON que puede pintarse directamente en el mapa
+    como zona de riesgo con color según nivel de peligro.
+
+    Dirección del viento: 0=Norte, 90=Este, 180=Sur, 270=Oeste
+    """
+    resultado = _calcular_elipse_propagacion(
+        lat=datos.latitud,
+        lng=datos.longitud,
+        temperatura=datos.temperatura,
+        humedad=datos.humedad,
+        viento_velocidad=datos.viento_velocidad,
+        viento_direccion=datos.viento_direccion,
+        minutos=datos.minutos
+    )
+
+    area_ha = resultado['area_ha']
+    ros = resultado['ros_cabeza']
+
+    # Nivel de peligro
+    if area_ha < 1:
+        peligro = "BAJO"
+        color = "#FFFF00"
+    elif area_ha < 10:
+        peligro = "MODERADO"
+        color = "#FFA500"
+    elif area_ha < 50:
+        peligro = "ALTO"
+        color = "#FF4500"
+    else:
+        peligro = "EXTREMO"
+        color = "#CC0000"
+
+    mensajes = {
+        "BAJO":     f"Propagación lenta. ~{area_ha} ha en {datos.minutos} min.",
+        "MODERADO": f"Propagación moderada. ~{area_ha} ha en {datos.minutos} min. Evacuar zona.",
+        "ALTO":     f"⚠️ Propagación rápida. ~{area_ha} ha en {datos.minutos} min. Evacuar URGENTE.",
+        "EXTREMO":  f"🔥 Propagación EXTREMA. ~{area_ha} ha en {datos.minutos} min. EMERGENCIA MÁXIMA."
+    }
+
+    zona_geojson = {
+        "type": "Feature",
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [resultado['puntos']]
+        },
+        "properties": {
+            "peligro": peligro,
+            "color": color,
+            "area_hectareas": area_ha,
+            "minutos": datos.minutos,
+            "ros_m_min": ros,
+            "dist_frente_m": resultado['dist_cabeza'],
+            "dist_flanco_m": resultado['dist_flanco']
+        }
+    }
+
+    return PropagacionResponse(
+        zona_riesgo=zona_geojson,
+        centro={"lat": datos.latitud, "lng": datos.longitud},
+        parametros={
+            "temperatura": datos.temperatura,
+            "humedad": datos.humedad,
+            "viento_velocidad_kmh": datos.viento_velocidad,
+            "viento_direccion_grados": datos.viento_direccion,
+            "minutos_proyeccion": datos.minutos
+        },
+        peligro=peligro,
+        area_hectareas=area_ha,
+        ros_m_por_min=ros,
+        mensaje=mensajes[peligro]
+    )
