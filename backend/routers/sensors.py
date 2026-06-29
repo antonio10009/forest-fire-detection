@@ -38,6 +38,8 @@ def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
         nivel = "AMARILLO"
     if lectura.temperatura > 70 or lectura.humo_ppm > 500:
         nivel = "ROJO"
+    if lectura.llama:  # ← llama detectada = ROJO inmediato
+        nivel = "ROJO"
 
     nueva_lectura = Lectura(**lectura.model_dump(), nivel_alerta=nivel)
     db.add(nueva_lectura)

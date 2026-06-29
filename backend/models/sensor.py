@@ -28,6 +28,7 @@ class Lectura(Base):
     humedad         = Column(Float)
     latitud         = Column(Float, nullable=True)
     longitud        = Column(Float, nullable=True)
+    llama           = Column(Boolean, default=False)
     nivel_alerta    = Column(String(20), default="VERDE")
     registrado_en   = Column(DateTime, default=datetime.utcnow)
 

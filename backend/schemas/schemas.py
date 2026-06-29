@@ -30,6 +30,7 @@ class LecturaBase(BaseModel):
 class LecturaCreate(LecturaBase):
     latitud: Optional[float] = None
     longitud: Optional[float] = None
+    llama: Optional[bool] = False
 
 class LecturaResponse(LecturaBase):
     id: int
@@ -37,6 +38,7 @@ class LecturaResponse(LecturaBase):
     registrado_en: datetime
     latitud: Optional[float] = None
     longitud: Optional[float] = None
+    llama: Optional[bool] = False
 
     class Config:
         from_attributes = True
