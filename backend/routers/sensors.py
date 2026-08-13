@@ -38,18 +38,21 @@ def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
         nivel = "AMARILLO"
     if lectura.temperatura > 70 or lectura.humo_ppm > 500:
         nivel = "ROJO"
-    if lectura.llama:  # ← llama detectada = ROJO inmediato
+    if lectura.llama:
         nivel = "ROJO"
 
     nueva_lectura = Lectura(**lectura.model_dump(), nivel_alerta=nivel)
     db.add(nueva_lectura)
 
-    # Si llego GPS valido, actualiza la posicion del sensor en el mapa
-    if lectura.latitud is not None and lectura.longitud is not None:
-        sensor_gps = db.query(Sensor).filter(Sensor.id == lectura.sensor_id).first()
-        if sensor_gps:
-            sensor_gps.latitud = lectura.latitud
-            sensor_gps.longitud = lectura.longitud
+    # Actualizar posición GPS y último nivel del sensor en el mapa
+    sensor_obj = db.query(Sensor).filter(Sensor.id == lectura.sensor_id).first()
+    if sensor_obj:
+        # Actualizar GPS si llegó válido
+        if lectura.latitud is not None and lectura.longitud is not None:
+            sensor_obj.latitud  = lectura.latitud
+            sensor_obj.longitud = lectura.longitud
+        # Actualizar último nivel para que el icono del mapa cambie de color
+        sensor_obj.ultimo_nivel = nivel
 
     if nivel == "ROJO":
         alerta = Alerta(
@@ -59,7 +62,6 @@ def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
         )
         db.add(alerta)
 
-        # Disparar notificaciones WhatsApp y SMS
         sensor_alerta = db.query(Sensor).filter(Sensor.id == lectura.sensor_id).first()
         if sensor_alerta:
             disparar_alerta_incendio(
