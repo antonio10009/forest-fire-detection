@@ -2,6 +2,9 @@
 .env
 *.env
 
+# Credenciales de firmware (SSID/clave WiFi)
+firmware/**/config.h
+
 # Entorno virtual Python
 venv/
 env/

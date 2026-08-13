@@ -16,6 +16,7 @@ class SensorResponse(SensorBase):
     id: int
     activo: bool
     creado_en: datetime
+    ultimo_nivel: Optional[str] = "VERDE"
 
     class Config:
         from_attributes = True

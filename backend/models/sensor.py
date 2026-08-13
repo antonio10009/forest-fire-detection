@@ -13,6 +13,7 @@ class Sensor(Base):
     longitud    = Column(Float, nullable=False)
     activo      = Column(Boolean, default=True)
     creado_en   = Column(DateTime, default=datetime.utcnow)
+    ultimo_nivel = Column(String(20), default="VERDE")
 
     lecturas    = relationship("Lectura", back_populates="sensor")
     alertas     = relationship("Alerta", back_populates="sensor")

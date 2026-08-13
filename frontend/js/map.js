@@ -1,10 +1,10 @@
 // ─── MAPA LEAFLET ──────────────────────
 const API = "https://forest-fire-detection-044r.onrender.com";
 
-const map = L.map('map').setView([-33.0472, -71.6127], 13);
+const map = L.map('map').setView([-33.2067, -70.6850], 15);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  attribution: '© OpenStreetMap © CARTO',
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   maxZoom: 19
 }).addTo(map);
 
@@ -71,7 +71,9 @@ async function cargarSensores() {
           <div style="font-family:monospace; font-size:12px;">
             <b>📡 ${sensor.nombre}</b><br>
             📍 ${sensor.ubicacion}<br>
-            🟢 Estado: ${nivel}
+            🟢 Estado: ${nivel}<br>
+            📌 Lat: ${sensor.latitud?.toFixed(6)}<br>
+            📌 Lng: ${sensor.longitud?.toFixed(6)}
           </div>
         `)
         .addTo(map);
@@ -88,6 +90,11 @@ async function cargarSensores() {
       `;
       lista.appendChild(item);
     });
+
+    // Centrar mapa automáticamente en el primer sensor con GPS válido
+    if (data.length > 0 && data[0].latitud) {
+      map.setView([data[0].latitud, data[0].longitud], 16);
+    }
 
   } catch (err) {
     console.error('Error cargando sensores:', err);
