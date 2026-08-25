@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>🔥 Forest Fire Detection System</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -16,81 +16,91 @@
   <!-- ─── HEADER ─────────────────────────── -->
   <header class="header">
     <div class="header-left">
-      <span class="fire-icon">🔥</span>
-      <div>
-        <h1>FOREST FIRE DETECTION</h1>
-        <p class="subtitle">SISTEMA DE DETECCIÓN TEMPRANA — VALPARAÍSO, CHILE</p>
+      <div class="brand-icon">🔥</div>
+      <div class="brand-text">
+        <h1>Forest Fire Detection</h1>
+        <p class="subtitle">Sistema de Detección Temprana · Valparaíso, Chile</p>
       </div>
     </div>
     <div class="header-right">
-      <div class="status-indicator">
+      <div class="status-pill">
         <span class="pulse-dot"></span>
-        <span id="system-status">SISTEMA ACTIVO</span>
+        <span id="system-status">Sistema activo</span>
       </div>
       <div class="clock" id="clock"></div>
+      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Cambiar modo">
+        <span class="theme-icon">🌙</span>
+      </button>
     </div>
   </header>
 
   <!-- ─── STATS BAR ──────────────────────── -->
   <div class="stats-bar">
     <div class="stat-item">
-      <span class="stat-value" id="total-sensors">0</span>
-      <span class="stat-label">SENSORES ACTIVOS</span>
+      <span class="stat-value accent-blue" id="total-sensors">0</span>
+      <span class="stat-label">Sensores activos</span>
     </div>
     <div class="stat-item">
-      <span class="stat-value alert-red" id="active-alerts">0</span>
-      <span class="stat-label">ALERTAS ACTIVAS</span>
+      <span class="stat-value accent-red" id="active-alerts">0</span>
+      <span class="stat-label">Alertas activas</span>
     </div>
     <div class="stat-item">
-      <span class="stat-value alert-yellow" id="total-readings">0</span>
-      <span class="stat-label">LECTURAS HOY</span>
+      <span class="stat-value accent-yellow" id="total-readings">0</span>
+      <span class="stat-label">Lecturas hoy</span>
     </div>
     <div class="stat-item">
-      <span class="stat-value alert-green" id="zones-safe">0</span>
-      <span class="stat-label">ZONAS SEGURAS</span>
+      <span class="stat-value accent-green" id="zones-safe">0</span>
+      <span class="stat-label">Zonas seguras</span>
     </div>
   </div>
 
   <!-- ─── MAIN GRID ──────────────────────── -->
   <main class="main-grid">
 
-    <!-- MAPA con controles de simulación -->
+    <!-- MAPA -->
     <section class="card map-card">
       <div class="card-header">
-        <span class="card-title">📡 MAPA DE SENSORES EN TIEMPO REAL</span>
-        <div style="display:flex;gap:0.5rem;align-items:center;">
-          <button id="btn-simular-prop" class="btn-simular" onclick="simularPropagacion()">🔥 SIMULAR</button>
-          <span class="card-badge">LIVE</span>
+        <div class="card-title-group">
+          <span class="card-icon">📡</span>
+          <span class="card-title">Mapa de sensores en tiempo real</span>
+        </div>
+        <div class="card-actions">
+          <button id="btn-simular-prop" class="btn-fire" onclick="simularPropagacion()">
+            🔥 Simular propagación
+          </button>
+          <span class="live-badge">LIVE</span>
         </div>
       </div>
 
-      <!-- Panel de simulación de propagación -->
       <div id="panel-simulacion" class="panel-simulacion">
-        <div class="panel-sim-header">🔥 SIMULADOR DE PROPAGACIÓN — Modelo McArthur FFDI</div>
+        <div class="panel-sim-header">
+          <span>🔥</span>
+          <span>Simulador de propagación — Modelo McArthur FFDI</span>
+        </div>
         <div class="panel-sim-grid">
           <div class="sim-control">
-            <label>VIENTO (km/h)</label>
+            <label>Viento (km/h)</label>
             <input type="number" id="sim-velocidad" value="30" min="0" max="120" step="5"/>
           </div>
           <div class="sim-control">
-            <label>DIRECCIÓN (°)</label>
+            <label>Dirección (°)</label>
             <input type="number" id="sim-direccion" value="225" min="0" max="359" step="15"/>
             <span class="sim-hint">0=N 90=E 180=S 270=O</span>
           </div>
           <div class="sim-control">
-            <label>TEMPERATURA (°C)</label>
+            <label>Temperatura (°C)</label>
             <input type="number" id="sim-temperatura" value="35" min="10" max="50"/>
           </div>
           <div class="sim-control">
-            <label>HUMEDAD (%)</label>
+            <label>Humedad (%)</label>
             <input type="number" id="sim-humedad" value="15" min="0" max="100"/>
           </div>
           <div class="sim-control">
-            <label>PROYECCIÓN (min)</label>
+            <label>Proyección (min)</label>
             <input type="number" id="sim-minutos" value="30" min="5" max="120" step="5"/>
           </div>
           <div class="sim-control sim-btn-col">
-            <button class="btn-ejecutar-sim" onclick="ejecutarSimulacion()">▶ CALCULAR</button>
+            <button class="btn-calcular" onclick="ejecutarSimulacion()">▶ Calcular</button>
           </div>
         </div>
         <div id="sim-resultado" class="sim-resultado"></div>
@@ -102,18 +112,27 @@
     <!-- ALERTAS ACTIVAS -->
     <section class="card alerts-card">
       <div class="card-header">
-        <span class="card-title">🚨 ALERTAS ACTIVAS</span>
-        <span class="card-badge red">URGENTE</span>
+        <div class="card-title-group">
+          <span class="card-icon">🚨</span>
+          <span class="card-title">Alertas activas</span>
+        </div>
+        <span class="urgent-badge">URGENTE</span>
       </div>
       <div class="alerts-list" id="alerts-list">
-        <div class="no-alerts"><span>✅ Sin alertas activas</span></div>
+        <div class="no-alerts">
+          <span class="no-alerts-icon">✅</span>
+          <span>Sin alertas activas</span>
+        </div>
       </div>
     </section>
 
     <!-- GRÁFICO TEMPERATURA -->
     <section class="card chart-card">
       <div class="card-header">
-        <span class="card-title">🌡️ TEMPERATURA EN TIEMPO REAL</span>
+        <div class="card-title-group">
+          <span class="card-icon">🌡️</span>
+          <span class="card-title">Temperatura en tiempo real</span>
+        </div>
       </div>
       <canvas id="tempChart"></canvas>
     </section>
@@ -121,18 +140,24 @@
     <!-- GRÁFICO HUMO -->
     <section class="card chart-card">
       <div class="card-header">
-        <span class="card-title">💨 NIVEL DE HUMO (PPM)</span>
+        <div class="card-title-group">
+          <span class="card-icon">💨</span>
+          <span class="card-title">Nivel de humo (PPM)</span>
+        </div>
       </div>
       <canvas id="smokeChart"></canvas>
     </section>
 
-    <!-- IA INSIGHTS — NUEVO PASO 17 -->
+    <!-- IA INSIGHTS -->
     <section class="card ia-insights-card">
       <div class="card-header">
-        <span class="card-title">🤖 ANÁLISIS IA EN TIEMPO REAL</span>
-        <div style="display:flex;gap:0.5rem;align-items:center;">
-          <span class="ia-badge">PASO 14+15</span>
-          <span class="card-badge">AUTO</span>
+        <div class="card-title-group">
+          <span class="card-icon">🤖</span>
+          <span class="card-title">Análisis IA en tiempo real</span>
+        </div>
+        <div class="card-actions">
+          <span class="tag-badge">Paso 14+15</span>
+          <span class="auto-badge">AUTO</span>
         </div>
       </div>
       <div id="ia-insights-content" class="ia-insights-content">
@@ -140,11 +165,14 @@
       </div>
     </section>
 
-    <!-- CHATBOT IA — NUEVO PASO 17 -->
+    <!-- CHATBOT IA -->
     <section class="card ia-chat-card">
       <div class="card-header">
-        <span class="card-title">💬 ASISTENTE IA</span>
-        <span class="ia-badge">PASO 17</span>
+        <div class="card-title-group">
+          <span class="card-icon">💬</span>
+          <span class="card-title">Asistente IA</span>
+        </div>
+        <span class="tag-badge">Paso 17</span>
       </div>
       <div id="chat-messages" class="chat-messages"></div>
       <div class="chat-input-area">
@@ -155,24 +183,29 @@
           placeholder="Pregunta sobre temperatura, alertas, propagación..."
           autocomplete="off"
         />
-        <button id="chat-btn-enviar" class="chat-btn-enviar" onclick="enviarMensaje()">▶</button>
+        <button id="chat-btn-enviar" class="chat-send-btn" onclick="enviarMensaje()">
+          <span>▶</span>
+        </button>
       </div>
     </section>
 
     <!-- HISTORIAL -->
     <section class="card history-card">
       <div class="card-header">
-        <span class="card-title">📋 HISTORIAL DE EVENTOS</span>
+        <div class="card-title-group">
+          <span class="card-icon">📋</span>
+          <span class="card-title">Historial de eventos</span>
+        </div>
       </div>
       <div class="table-wrapper">
         <table class="data-table">
           <thead>
             <tr>
-              <th>FECHA</th>
-              <th>SENSOR</th>
-              <th>TEMP °C</th>
-              <th>HUMO PPM</th>
-              <th>NIVEL</th>
+              <th>Fecha</th>
+              <th>Sensor</th>
+              <th>Temp °C</th>
+              <th>Humo PPM</th>
+              <th>Nivel</th>
             </tr>
           </thead>
           <tbody id="history-body"></tbody>
@@ -183,7 +216,10 @@
     <!-- ESTADO SENSORES -->
     <section class="card sensors-card">
       <div class="card-header">
-        <span class="card-title">🔧 ESTADO DE NODOS</span>
+        <div class="card-title-group">
+          <span class="card-icon">🔧</span>
+          <span class="card-title">Estado de nodos</span>
+        </div>
       </div>
       <div class="sensors-list" id="sensors-list"></div>
     </section>
@@ -191,31 +227,34 @@
     <!-- ESTADÍSTICAS -->
     <section class="card stats-detail-card">
       <div class="card-header">
-        <span class="card-title">📊 ESTADÍSTICAS DETALLADAS</span>
+        <div class="card-title-group">
+          <span class="card-icon">📊</span>
+          <span class="card-title">Estadísticas detalladas</span>
+        </div>
       </div>
       <div class="stats-detail-grid">
         <div class="stat-detail-item">
-          <div class="stat-detail-label">ZONA MÁS CRÍTICA</div>
+          <div class="stat-detail-label">Zona más crítica</div>
           <div class="stat-detail-value" id="zona-critica">—</div>
         </div>
         <div class="stat-detail-item">
-          <div class="stat-detail-label">TEMP. PROMEDIO</div>
+          <div class="stat-detail-label">Temp. promedio</div>
           <div class="stat-detail-value" id="temp-promedio">—</div>
         </div>
         <div class="stat-detail-item">
-          <div class="stat-detail-label">TEMP. MÁXIMA</div>
-          <div class="stat-detail-value alert-red" id="temp-max">—</div>
+          <div class="stat-detail-label">Temp. máxima</div>
+          <div class="stat-detail-value accent-red" id="temp-max">—</div>
         </div>
         <div class="stat-detail-item">
-          <div class="stat-detail-label">ALERTAS HOY</div>
-          <div class="stat-detail-value alert-red" id="alertas-hoy">—</div>
+          <div class="stat-detail-label">Alertas hoy</div>
+          <div class="stat-detail-value accent-red" id="alertas-hoy">—</div>
         </div>
         <div class="stat-detail-item">
-          <div class="stat-detail-label">HUMO PROMEDIO</div>
-          <div class="stat-detail-value alert-yellow" id="humo-promedio">—</div>
+          <div class="stat-detail-label">Humo promedio</div>
+          <div class="stat-detail-value accent-yellow" id="humo-promedio">—</div>
         </div>
         <div class="stat-detail-item">
-          <div class="stat-detail-label">TOTAL LECTURAS</div>
+          <div class="stat-detail-label">Total lecturas</div>
           <div class="stat-detail-value" id="total-lecturas">—</div>
         </div>
       </div>
@@ -223,6 +262,36 @@
     </section>
 
   </main>
+
+  <script>
+    // ── TEMA OSCURO/CLARO ─────────────────────────────
+    const savedTheme = localStorage.getItem('ff-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('ff-theme', next);
+      updateThemeIcon(next);
+    }
+
+    function updateThemeIcon(theme) {
+      const btn = document.getElementById('theme-toggle');
+      if (btn) btn.querySelector('.theme-icon').textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+
+    // ── RELOJ ─────────────────────────────────────────
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent =
+        now.toLocaleDateString('es-CL', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) +
+        '  ' + now.toLocaleTimeString('es-CL');
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
 
   <script src="js/map.js"></script>
   <script src="js/charts.js"></script>

@@ -55,3 +55,25 @@ class AlertaResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# Nueva configuración de umbrales.
+
+# ─── CONFIGURACIÓN DE UMBRALES ────────────────────────────────
+class ConfiguracionBase(BaseModel):
+    temp_amarillo_min:  float = 45.0
+    temp_rojo_min:      float = 55.0
+    humo_amarillo_min:  float = 200.0
+    humo_rojo_min:      float = 500.0
+    humedad_riesgo_max: float = 30.0
+    humedad_normal_min: float = 40.0
+    humedad_normal_max: float = 70.0
+
+class ConfiguracionUpdate(ConfiguracionBase):
+    pass
+
+class ConfiguracionResponse(ConfiguracionBase):
+    id: int
+    actualizado_en: datetime
+
+    class Config:
+        from_attributes = True

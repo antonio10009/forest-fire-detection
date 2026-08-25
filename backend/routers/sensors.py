@@ -1,12 +1,79 @@
+# backend/routers/sensors.py
+# Versión actualizada con nueva lógica de clasificación dinámica
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.sensor import Sensor, Lectura, Alerta
+from backend.models.config import Configuracion
 from backend.schemas.schemas import SensorCreate, SensorResponse, LecturaCreate, LecturaResponse
 from backend.notifications import disparar_alerta_incendio
 from typing import List
 
 router = APIRouter()
+
+def get_config(db: Session) -> Configuracion:
+    """Obtiene la configuración actual de umbrales."""
+    config = db.query(Configuracion).filter(Configuracion.id == 1).first()
+    if not config:
+        config = Configuracion(id=1)
+        db.add(config)
+        db.commit()
+        db.refresh(config)
+    return config
+
+def clasificar_nivel(lectura: LecturaCreate, config: Configuracion) -> str:
+    """
+    Clasifica el nivel de alerta según los umbrales configurados.
+
+    VERDE  — Condiciones normales, sin riesgo.
+    AMARILLO — Pre-alarma: proximidad de riesgo o factor ambiental desfavorable.
+    ROJO   — Incendio real confirmado, actuar de inmediato.
+
+    Lógica:
+      ROJO si:
+        - Llama detectada (confirmación física directa de fuego)
+        - Temperatura >= temp_rojo_min Y humo >= humo_rojo_min (calor + gases = fuego real)
+        - Temperatura >= temp_rojo_min Y llama = SI
+        - Humo >= humo_rojo_min solo (gas muy anormal)
+
+      AMARILLO si:
+        - Temperatura entre temp_amarillo_min y temp_rojo_min (subiendo hacia zona peligro)
+        - Humo entre humo_amarillo_min y humo_rojo_min (elevado pero no crítico)
+        - Humedad <= humedad_riesgo_max (ambiente seco, factor de riesgo contextual)
+
+      VERDE en cualquier otro caso.
+    """
+    temp  = lectura.temperatura
+    humo  = lectura.humo_ppm
+    hum   = lectura.humedad
+    llama = lectura.llama or False
+
+    # Sensor DHT22 fallido — no clasificar por temperatura ni humedad
+    dht_ok = not (temp == 0 and hum == 0)
+
+    # ── ROJO ──────────────────────────────────────────────────
+    if llama:
+        return "ROJO"
+
+    if humo >= config.humo_rojo_min:
+        return "ROJO"
+
+    if dht_ok and temp >= config.temp_rojo_min and humo >= config.humo_amarillo_min:
+        return "ROJO"
+
+    # ── AMARILLO ──────────────────────────────────────────────
+    if dht_ok and config.temp_amarillo_min <= temp < config.temp_rojo_min:
+        return "AMARILLO"
+
+    if config.humo_amarillo_min <= humo < config.humo_rojo_min:
+        return "AMARILLO"
+
+    if dht_ok and hum <= config.humedad_riesgo_max:
+        return "AMARILLO"
+
+    # ── VERDE ─────────────────────────────────────────────────
+    return "VERDE"
 
 # ─── CREAR SENSOR ─────────────────────────
 @router.post("/", response_model=SensorResponse)
@@ -33,27 +100,25 @@ def obtener_sensor(sensor_id: int, db: Session = Depends(get_db)):
 # ─── RECIBIR LECTURA DEL ESP32 ────────────
 @router.post("/lectura", response_model=LecturaResponse)
 def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
-    nivel = "VERDE"
-    if lectura.temperatura > 50 or lectura.humo_ppm > 200:
-        nivel = "AMARILLO"
-    if lectura.temperatura > 70 or lectura.humo_ppm > 500:
-        nivel = "ROJO"
-    if lectura.llama:
-        nivel = "ROJO"
+
+    # Obtener umbrales configurados
+    config = get_config(db)
+
+    # Clasificar con lógica dinámica
+    nivel = clasificar_nivel(lectura, config)
 
     nueva_lectura = Lectura(**lectura.model_dump(), nivel_alerta=nivel)
     db.add(nueva_lectura)
 
-    # Actualizar posición GPS y último nivel del sensor en el mapa
+    # Actualizar posición GPS y último nivel del sensor
     sensor_obj = db.query(Sensor).filter(Sensor.id == lectura.sensor_id).first()
     if sensor_obj:
-        # Actualizar GPS si llegó válido
         if lectura.latitud is not None and lectura.longitud is not None:
             sensor_obj.latitud  = lectura.latitud
             sensor_obj.longitud = lectura.longitud
-        # Actualizar último nivel para que el icono del mapa cambie de color
         sensor_obj.ultimo_nivel = nivel
 
+    # Disparar alerta si ROJO
     if nivel == "ROJO":
         alerta = Alerta(
             sensor_id=lectura.sensor_id,
@@ -62,11 +127,10 @@ def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
         )
         db.add(alerta)
 
-        sensor_alerta = db.query(Sensor).filter(Sensor.id == lectura.sensor_id).first()
-        if sensor_alerta:
+        if sensor_obj:
             disparar_alerta_incendio(
-                sensor_nombre=sensor_alerta.nombre,
-                ubicacion=sensor_alerta.ubicacion,
+                sensor_nombre=sensor_obj.nombre,
+                ubicacion=sensor_obj.ubicacion,
                 temperatura=lectura.temperatura,
                 humo_ppm=lectura.humo_ppm
             )
