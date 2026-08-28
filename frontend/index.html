@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>🔥 Forest Fire Detection System</title>
-
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -28,6 +27,7 @@
         <span id="system-status">Sistema activo</span>
       </div>
       <div class="clock" id="clock"></div>
+      <button class="btn-ajustes" onclick="togglePanelAjustes()" title="Configurar umbrales">⚙️</button>
       <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Cambiar modo">
         <span class="theme-icon">🌙</span>
       </button>
@@ -65,13 +65,10 @@
           <span class="card-title">Mapa de sensores en tiempo real</span>
         </div>
         <div class="card-actions">
-          <button id="btn-simular-prop" class="btn-fire" onclick="simularPropagacion()">
-            🔥 Simular propagación
-          </button>
+          <button id="btn-simular-prop" class="btn-fire" onclick="simularPropagacion()">🔥 Simular</button>
           <span class="live-badge">LIVE</span>
         </div>
       </div>
-
       <div id="panel-simulacion" class="panel-simulacion">
         <div class="panel-sim-header">
           <span>🔥</span>
@@ -105,11 +102,10 @@
         </div>
         <div id="sim-resultado" class="sim-resultado"></div>
       </div>
-
       <div id="map"></div>
     </section>
 
-    <!-- ALERTAS ACTIVAS -->
+    <!-- ALERTAS -->
     <section class="card alerts-card">
       <div class="card-header">
         <div class="card-title-group">
@@ -176,16 +172,10 @@
       </div>
       <div id="chat-messages" class="chat-messages"></div>
       <div class="chat-input-area">
-        <input
-          type="text"
-          id="chat-input"
-          class="chat-input"
+        <input type="text" id="chat-input" class="chat-input"
           placeholder="Pregunta sobre temperatura, alertas, propagación..."
-          autocomplete="off"
-        />
-        <button id="chat-btn-enviar" class="chat-send-btn" onclick="enviarMensaje()">
-          <span>▶</span>
-        </button>
+          autocomplete="off"/>
+        <button id="chat-btn-enviar" class="chat-send-btn" onclick="enviarMensaje()">▶</button>
       </div>
     </section>
 
@@ -201,11 +191,7 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Sensor</th>
-              <th>Temp °C</th>
-              <th>Humo PPM</th>
-              <th>Nivel</th>
+              <th>Fecha</th><th>Sensor</th><th>Temp °C</th><th>Humo PPM</th><th>Nivel</th>
             </tr>
           </thead>
           <tbody id="history-body"></tbody>
@@ -263,8 +249,112 @@
 
   </main>
 
+  <!-- ═══ OVERLAY + PANEL DE AJUSTES ════════════════════════════ -->
+  <div class="ajustes-overlay" id="ajustes-overlay" onclick="togglePanelAjustes()"></div>
+
+  <aside class="panel-ajustes" id="panel-ajustes">
+    <div class="panel-ajustes-header">
+      <div class="panel-ajustes-titulo">⚙️ Configuración de umbrales</div>
+      <button class="btn-cerrar-panel" onclick="togglePanelAjustes()">✕</button>
+    </div>
+
+    <div class="panel-ajustes-body">
+
+      <!-- TEMPERATURA -->
+      <div class="cfg-group">
+        <div class="cfg-group-header">
+          <span class="cfg-group-icon">🌡️</span>
+          <span class="cfg-group-title">Temperatura</span>
+          <span class="cfg-group-desc">Pre-alarma entre mín y máx · ROJO desde máx</span>
+        </div>
+        <div class="cfg-rows">
+          <div class="cfg-row">
+            <span class="cfg-row-label cfg-label-amarillo">🟡 Mínimo</span>
+            <div class="cfg-row-input cfg-wrapper-amarillo">
+              <input type="number" id="cfg-temp-min" min="20" max="80" step="1" placeholder="45"/>
+              <span class="cfg-unit">°C</span>
+            </div>
+          </div>
+          <div class="cfg-row">
+            <span class="cfg-row-label cfg-label-rojo">🔴 Máximo</span>
+            <div class="cfg-row-input cfg-wrapper-rojo">
+              <input type="number" id="cfg-temp-max" min="30" max="120" step="1" placeholder="55"/>
+              <span class="cfg-unit">°C</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HUMO / GAS -->
+      <div class="cfg-group">
+        <div class="cfg-group-header">
+          <span class="cfg-group-icon">💨</span>
+          <span class="cfg-group-title">Humo y gases</span>
+          <span class="cfg-group-desc">Pre-alarma entre mín y máx · ROJO desde máx</span>
+        </div>
+        <div class="cfg-rows">
+          <div class="cfg-row">
+            <span class="cfg-row-label cfg-label-amarillo">🟡 Mínimo</span>
+            <div class="cfg-row-input cfg-wrapper-amarillo">
+              <input type="number" id="cfg-humo-min" min="50" max="1000" step="10" placeholder="200"/>
+              <span class="cfg-unit">ppm</span>
+            </div>
+          </div>
+          <div class="cfg-row">
+            <span class="cfg-row-label cfg-label-rojo">🔴 Máximo</span>
+            <div class="cfg-row-input cfg-wrapper-rojo">
+              <input type="number" id="cfg-humo-max" min="100" max="2000" step="10" placeholder="500"/>
+              <span class="cfg-unit">ppm</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HUMEDAD -->
+      <div class="cfg-group">
+        <div class="cfg-group-header">
+          <span class="cfg-group-icon">💧</span>
+          <span class="cfg-group-title">Humedad</span>
+          <span class="cfg-group-desc">Factor de riesgo contextual · No dispara ROJO solo</span>
+        </div>
+        <div class="cfg-rows">
+          <div class="cfg-row">
+            <span class="cfg-row-label cfg-label-amarillo">🟡 Umbral riesgo</span>
+            <div class="cfg-row-input cfg-wrapper-amarillo">
+              <input type="number" id="cfg-hum-riesgo" min="5" max="50" step="1" placeholder="30"/>
+              <span class="cfg-unit">%</span>
+            </div>
+          </div>
+          <div class="cfg-row">
+            <span class="cfg-row-label cfg-label-verde">🟢 Normal mínimo</span>
+            <div class="cfg-row-input cfg-wrapper-verde">
+              <input type="number" id="cfg-hum-normal-min" min="10" max="60" step="1" placeholder="40"/>
+              <span class="cfg-unit">%</span>
+            </div>
+          </div>
+          <div class="cfg-row">
+            <span class="cfg-row-label cfg-label-verde">🟢 Normal máximo</span>
+            <div class="cfg-row-input cfg-wrapper-verde">
+              <input type="number" id="cfg-hum-normal-max" min="30" max="95" step="1" placeholder="70"/>
+              <span class="cfg-unit">%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="panel-ajustes-footer">
+      <div class="cfg-mensaje" id="cfg-mensaje"></div>
+      <div id="cfg-ultima-actualizacion" class="cfg-ultima-actualizacion"></div>
+      <div class="cfg-buttons">
+        <button id="cfg-btn-guardar" class="btn-guardar" onclick="guardarConfiguracion()">💾 Guardar cambios</button>
+        <button class="btn-default" onclick="restaurarDefault()">↺ Default</button>
+      </div>
+    </div>
+  </aside>
+
   <script>
-    // ── TEMA OSCURO/CLARO ─────────────────────────────
     const savedTheme = localStorage.getItem('ff-theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     updateThemeIcon(savedTheme);
@@ -282,7 +372,6 @@
       if (btn) btn.querySelector('.theme-icon').textContent = theme === 'dark' ? '☀️' : '🌙';
     }
 
-    // ── RELOJ ─────────────────────────────────────────
     function updateClock() {
       const now = new Date();
       document.getElementById('clock').textContent =
@@ -298,6 +387,7 @@
   <script src="js/alerts.js"></script>
   <script src="js/ia.js"></script>
   <script src="js/beep_alerta.js"></script>
+  <script src="js/panel_ajustes.js"></script>
 
 </body>
 </html>

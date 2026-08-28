@@ -1,5 +1,5 @@
 # backend/routers/sensors.py
-# Versión actualizada con nueva lógica de clasificación dinámica
+# Versión actualizada con lógica AND para evitar falsos positivos por luz solar
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -13,7 +13,6 @@ from typing import List
 router = APIRouter()
 
 def get_config(db: Session) -> Configuracion:
-    """Obtiene la configuración actual de umbrales."""
     config = db.query(Configuracion).filter(Configuracion.id == 1).first()
     if not config:
         config = Configuracion(id=1)
@@ -24,55 +23,74 @@ def get_config(db: Session) -> Configuracion:
 
 def clasificar_nivel(lectura: LecturaCreate, config: Configuracion) -> str:
     """
-    Clasifica el nivel de alerta según los umbrales configurados.
+    Clasifica el nivel de alerta con lógica AND para evitar falsos positivos.
 
     VERDE  — Condiciones normales, sin riesgo.
-    AMARILLO — Pre-alarma: proximidad de riesgo o factor ambiental desfavorable.
-    ROJO   — Incendio real confirmado, actuar de inmediato.
+    AMARILLO — Pre-alarma o señal ambigua que requiere vigilancia.
+    ROJO   — Incendio real confirmado por múltiples sensores simultáneos.
 
-    Lógica:
-      ROJO si:
-        - Llama detectada (confirmación física directa de fuego)
-        - Temperatura >= temp_rojo_min Y humo >= humo_rojo_min (calor + gases = fuego real)
-        - Temperatura >= temp_rojo_min Y llama = SI
-        - Humo >= humo_rojo_min solo (gas muy anormal)
+    Lógica anti-falso positivo:
+      La llama sola (sin calor ni humo elevado) activa AMARILLO, no ROJO.
+      Esto evita que la luz solar directa dispare falsas alarmas de incendio.
+      Un incendio real siempre produce llama + calor O llama + humo simultáneamente.
 
-      AMARILLO si:
-        - Temperatura entre temp_amarillo_min y temp_rojo_min (subiendo hacia zona peligro)
-        - Humo entre humo_amarillo_min y humo_rojo_min (elevado pero no crítico)
-        - Humedad <= humedad_riesgo_max (ambiente seco, factor de riesgo contextual)
+    ROJO si:
+      - Llama + temperatura >= temp_amarillo_min (calor confirmado con llama)
+      - Llama + humo >= humo_amarillo_min (gases confirmados con llama)
+      - Temperatura >= temp_rojo_min + humo >= humo_amarillo_min (calor extremo + gases)
+      - Humo >= humo_rojo_min solo (gases críticos sin llama, ej. fuego oculto)
 
-      VERDE en cualquier otro caso.
+    AMARILLO si:
+      - Llama sola sin calor ni humo elevado (posible luz solar, vigilar)
+      - Temperatura entre temp_amarillo_min y temp_rojo_min
+      - Humo entre humo_amarillo_min y humo_rojo_min
+      - Humedad <= humedad_riesgo_max (factor de riesgo contextual)
+
+    VERDE en cualquier otro caso.
     """
     temp  = lectura.temperatura
     humo  = lectura.humo_ppm
     hum   = lectura.humedad
     llama = lectura.llama or False
 
-    # Sensor DHT22 fallido — no clasificar por temperatura ni humedad
+    # DHT22 fallido (0,0) → no clasificar por temp ni humedad
     dht_ok = not (temp == 0 and hum == 0)
 
-    # ── ROJO ──────────────────────────────────────────────────
-    if llama:
+    # ── ROJO — incendio real confirmado ───────────────────────
+    # Llama + calor confirmado (descarta luz solar sola)
+    if llama and dht_ok and temp >= config.temp_amarillo_min:
         return "ROJO"
 
-    if humo >= config.humo_rojo_min:
+    # Llama + humo elevado confirmado (descarta luz solar sola)
+    if llama and humo >= config.humo_amarillo_min:
         return "ROJO"
 
+    # Temperatura extrema + humo elevado (fuego sin llama visible)
     if dht_ok and temp >= config.temp_rojo_min and humo >= config.humo_amarillo_min:
         return "ROJO"
 
-    # ── AMARILLO ──────────────────────────────────────────────
+    # Humo crítico solo (fuego oculto bajo vegetación)
+    if humo >= config.humo_rojo_min:
+        return "ROJO"
+
+    # ── AMARILLO — pre-alarma o señal ambigua ─────────────────
+    # Llama sola sin calor ni humo = posible luz solar, vigilar
+    if llama:
+        return "AMARILLO"
+
+    # Temperatura en zona de pre-alarma
     if dht_ok and config.temp_amarillo_min <= temp < config.temp_rojo_min:
         return "AMARILLO"
 
+    # Humo en zona de pre-alarma
     if config.humo_amarillo_min <= humo < config.humo_rojo_min:
         return "AMARILLO"
 
+    # Humedad baja: factor de riesgo contextual
     if dht_ok and hum <= config.humedad_riesgo_max:
         return "AMARILLO"
 
-    # ── VERDE ─────────────────────────────────────────────────
+    # ── VERDE — condiciones normales ──────────────────────────
     return "VERDE"
 
 # ─── CREAR SENSOR ─────────────────────────
@@ -101,16 +119,13 @@ def obtener_sensor(sensor_id: int, db: Session = Depends(get_db)):
 @router.post("/lectura", response_model=LecturaResponse)
 def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
 
-    # Obtener umbrales configurados
     config = get_config(db)
-
-    # Clasificar con lógica dinámica
     nivel = clasificar_nivel(lectura, config)
 
     nueva_lectura = Lectura(**lectura.model_dump(), nivel_alerta=nivel)
     db.add(nueva_lectura)
 
-    # Actualizar posición GPS y último nivel del sensor
+    # Actualizar GPS y último nivel del sensor
     sensor_obj = db.query(Sensor).filter(Sensor.id == lectura.sensor_id).first()
     if sensor_obj:
         if lectura.latitud is not None and lectura.longitud is not None:
@@ -118,12 +133,13 @@ def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
             sensor_obj.longitud = lectura.longitud
         sensor_obj.ultimo_nivel = nivel
 
-    # Disparar alerta si ROJO
+    # Disparar alerta solo en ROJO real (no en AMARILLO por luz solar)
     if nivel == "ROJO":
         alerta = Alerta(
             sensor_id=lectura.sensor_id,
             tipo="INCENDIO",
-            mensaje=f"🔥 Alerta crítica: Temperatura {lectura.temperatura}°C, Humo {lectura.humo_ppm}ppm"
+            mensaje=f"🔥 Alerta crítica: Temperatura {lectura.temperatura}°C, "
+                    f"Humo {lectura.humo_ppm}ppm, Llama: {'SI' if lectura.llama else 'NO'}"
         )
         db.add(alerta)
 
