@@ -148,7 +148,10 @@ def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
                 sensor_nombre=sensor_obj.nombre,
                 ubicacion=sensor_obj.ubicacion,
                 temperatura=lectura.temperatura,
-                humo_ppm=lectura.humo_ppm
+                humo_ppm=lectura.humo_ppm,
+                db=db,                          # ← NUEVO
+                latitud=sensor_obj.latitud,     # ← NUEVO
+                longitud=sensor_obj.longitud,   # ← NUEVO
             )
 
     db.commit()

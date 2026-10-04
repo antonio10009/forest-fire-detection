@@ -3,10 +3,13 @@ const API = "https://forest-fire-detection-044r.onrender.com";
 
 const map = L.map('map').setView([-33.2067, -70.6850], 15);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  maxZoom: 19
-}).addTo(map);
+L.tileLayer(
+  'https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=be9b6285024d4f8d8d4213188ec971e4',
+  {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.geoapify.com/">Geoapify</a>',
+    maxZoom: 20
+  }
+).addTo(map);
 
 const iconVerde = L.divIcon({
   className: '',
