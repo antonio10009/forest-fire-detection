@@ -6,8 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.database import engine, Base
 from backend.models.sensor import Sensor, Lectura, Alerta
 from backend.models.config import Configuracion
+from backend.models.suscriptor import Suscriptor
 from backend.routers import sensors, alerts, stats, config
 from backend.routers import ml
+from backend.routers import suscriptores
 
 Base.metadata.create_all(bind=engine)
 
@@ -30,6 +32,7 @@ app.include_router(alerts.router,  prefix="/api/alerts",  tags=["Alertas"])
 app.include_router(stats.router,   prefix="/api/stats",   tags=["Estadísticas"])
 app.include_router(ml.router,      prefix="/api/ml",      tags=["IA"])
 app.include_router(config.router,  prefix="/api/config",  tags=["Configuración"])
+app.include_router(suscriptores.router, prefix="/api/suscriptores", tags=["Suscriptores"])
 
 @app.get("/")
 def root():
