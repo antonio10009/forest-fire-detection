@@ -109,7 +109,7 @@ def listar_suscriptores(
 # ADMIN — Agregar número manualmente (sin esperar que escriban)
 # POST /api/suscriptores/agregar?numero=+56912345678
 # ══════════════════════════════════════════════════════════════
-@router.post("/agregar")
+@router.get("/agregar")
 def agregar_suscriptor(
     numero: str = Query(..., description="Número en formato +56XXXXXXXXX"),
     nombre: str = Query(None),
