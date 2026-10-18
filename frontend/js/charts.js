@@ -79,8 +79,6 @@ async function actualizarGraficos() {
     smokeChart.data.datasets[0].data = humos;
     smokeChart.update();
 
-    document.getElementById('total-readings').textContent = data.length;
-
   } catch (err) {
     console.error('Error actualizando gráficos:', err);
   }
@@ -97,6 +95,7 @@ async function cargarEstadisticas() {
       ]);
 
     document.getElementById('alertas-hoy').textContent    = resumen.alertas_hoy;
+    document.getElementById('total-readings').textContent = resumen.lecturas_hoy ?? '—';
     document.getElementById('total-lecturas').textContent = resumen.total_lecturas;
 
     if (tempProm.length > 0) {
