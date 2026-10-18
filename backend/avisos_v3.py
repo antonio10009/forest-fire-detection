@@ -75,11 +75,36 @@ def _enviar_whatsapp(numero: str, texto: str, variables=None, content_sid="") ->
     else:
         kw["body"] = texto
     try:
-        cliente.messages.create(**kw)
-        return True
+        m = cliente.messages.create(**kw)
     except Exception as e:
         print(f"[WhatsApp v3] ❌ {numero}: {e}")
         return False
+    return _confirmar(cliente, m, numero)
+
+
+# Twilio acepta el mensaje y algunos errores llegan después (ej. 21703: el Messaging Service no tiene
+# número). Se espera un poco su estado: si falla, el padre debe saberlo para avisar directo.
+_FALLIDO = {"failed", "undelivered", "canceled"}
+_SALIO = {"sent", "delivered", "read", "partially_delivered"}
+CONFIRMAR_S = 2.0          # el padre espera ~8 s en total; sin respuesta definitiva, se da por enviado
+CONFIRMAR_PASO_S = 0.4
+
+
+def _confirmar(cliente, m, numero: str) -> bool:
+    fin = time.monotonic() + CONFIRMAR_S
+    while True:
+        estado = str(getattr(m, "status", "") or "").lower()
+        if estado in _FALLIDO:
+            print(f"[WhatsApp v3] ❌ {numero}: Twilio lo marcó {estado} (error {getattr(m, 'error_code', None)})")
+            return False
+        if estado in _SALIO or time.monotonic() >= fin:
+            return True
+        time.sleep(CONFIRMAR_PASO_S)
+        try:
+            m = cliente.messages(m.sid).fetch()
+        except Exception as e:
+            print(f"[WhatsApp v3] no pude revisar el estado de {numero}: {e}")
+            return True
 
 
 def destinos(db, clase: str):

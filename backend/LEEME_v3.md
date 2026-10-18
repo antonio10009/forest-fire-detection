@@ -47,8 +47,9 @@ El servidor de Render ahora recibe a los padres v3, avisa por WhatsApp sin repet
 |---|---|
 | `DEVICE_API_KEY` | **Obligatoria.** La misma clave que `API_KEY_DISPOSITIVO` en el `secrets.h` de cada padre |
 | `ADMIN_API_KEY` | **Obligatoria.** La clave que pide la web para cambiar cosas |
-| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MSG_SVC_SID` | Ya las tienes (WhatsApp a suscriptores). Con el token nuevo |
-| `TWILIO_FROM_WA` | Solo si no usas Messaging Service (sandbox: `whatsapp:+14155238886`) |
+| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` | Ya las tienes (WhatsApp a suscriptores). Con el token nuevo |
+| `TWILIO_MSG_SVC_SID` | Solo cuando el Messaging Service ya tenga tu número de WhatsApp adentro. Sin número, Twilio acepta el mensaje y después lo marca fallido (error 21703) |
+| `TWILIO_FROM_WA` | Úsala en vez de `TWILIO_MSG_SVC_SID` mientras pruebas con el Sandbox: `whatsapp:+14155238886` |
 | `TWILIO_CONTENT_SID` | Plantilla aprobada para incendios y pruebas (ver abajo). La misma va en el `secrets.h` del padre |
 | `TWILIO_CONTENT_SID_TECNICO` | Plantilla aprobada para los avisos técnicos (ver abajo) |
 | `AVISOS_TECNICOS_WA` | **Necesaria para los avisos técnicos.** Tus números (y los de quien mantenga la red), separados por coma: `+569...,+569...` |
