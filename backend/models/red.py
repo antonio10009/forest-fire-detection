@@ -99,3 +99,19 @@ class AlertaRed(Base):
     alerta_web_id  = Column(Integer, ForeignKey("alertas.id"), nullable=True)
 
     __table_args__ = (Index("ix_red_alertas_clave", "nodo", "arranque_id", "alerta_id", "tipo"),)
+
+
+class EnvioWhatsApp(Base):
+    """Cada WhatsApp de un aviso y lo que Twilio informó después: así se mide cuánto tardó en llegar al celular."""
+    __tablename__ = "red_envios"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    alerta_id    = Column(Integer, ForeignKey("red_alertas.id"), nullable=True, index=True)
+    numero       = Column(String(20))
+    sid          = Column(String(40), unique=True, nullable=False, index=True)   # id del mensaje en Twilio
+    estado       = Column(String(20))                       # sent, delivered, read, failed...
+    error        = Column(String(10))
+    creado_en    = Column(DateTime, default=ahora_utc)       # UTC, como todas las fechas
+    enviado_en   = Column(DateTime)                         # Twilio lo entregó a WhatsApp
+    entregado_en = Column(DateTime)                         # llegó al celular
+    leido_en     = Column(DateTime)                         # la persona lo abrió

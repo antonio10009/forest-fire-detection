@@ -59,11 +59,20 @@ def plantilla(clase: str) -> str:
     return _env("TWILIO_CONTENT_SID_TECNICO" if clase == "tecnico" else "TWILIO_CONTENT_SID")
 
 
-def _enviar_whatsapp(numero: str, texto: str, variables=None, content_sid="") -> bool:
+def url_estado() -> str:
+    """Dirección pública donde Twilio informa si cada WhatsApp llegó al celular ("" = no se pide).
+    Render define RENDER_EXTERNAL_URL solo; en otro servidor, poner URL_PUBLICA=https://..."""
+    base = _env("URL_PUBLICA") or _env("RENDER_EXTERNAL_URL")
+    return base.rstrip("/") + "/api/v3/twilio/estado" if base.startswith("https://") else ""
+
+
+def _enviar_whatsapp(numero: str, texto: str, variables=None, content_sid="", al_crear=None) -> bool:
     cliente = _cliente_twilio()
     if cliente is None:
         return False
     kw = {"to": f"whatsapp:{numero}"}
+    if al_crear and url_estado():
+        kw["status_callback"] = url_estado()
     if _env("TWILIO_MSG_SVC_SID"):
         kw["messaging_service_sid"] = _env("TWILIO_MSG_SVC_SID")
     else:
@@ -79,6 +88,11 @@ def _enviar_whatsapp(numero: str, texto: str, variables=None, content_sid="") ->
     except Exception as e:
         print(f"[WhatsApp v3] ❌ {numero}: {e}")
         return False
+    if al_crear:
+        try:
+            al_crear(numero, m.sid)
+        except Exception as e:
+            print(f"[WhatsApp v3] no pude registrar el envío a {numero}: {e}")
     return _confirmar(cliente, m, numero)
 
 
@@ -122,13 +136,15 @@ def destinos(db, clase: str):
 
 # ─── Envío con plazo ──────────────────────────────────────────
 
-def enviar(numeros, texto, variables=None, content_sid="", plazo_s=5.0, al_terminar=None):
+def enviar(numeros, texto, variables=None, content_sid="", plazo_s=5.0, al_terminar=None, al_crear=None):
     """
     Manda a todos los números en paralelo y espera hasta plazo_s.
     Devuelve True (al menos uno salió), None (siguen en curso) o False (nada salió / no hay números).
     al_terminar(resumen) se llama cuando terminan todos, con un texto tipo "WhatsApp 3/3".
+    al_crear(numero, sid) se llama apenas Twilio acepta cada mensaje, y además se le pide a Twilio
+    que informe a url_estado() cuándo llega al celular.
     """
-    tareas = [_pool.submit(_enviar_whatsapp, n, texto, variables, content_sid) for n in numeros]
+    tareas = [_pool.submit(_enviar_whatsapp, n, texto, variables, content_sid, al_crear) for n in numeros]
     if not tareas:
         if al_terminar:
             al_terminar("sin destinos (WhatsApp no configurado o sin números)")
