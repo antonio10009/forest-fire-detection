@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/style.css?v=3"/>
 </head>
 <body>
 
@@ -118,6 +118,34 @@
         <div class="no-alerts">
           <span class="no-alerts-icon">✅</span>
           <span>Sin alertas activas</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- RED v3: PADRES E HIJOS -->
+    <section class="card red-card">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-icon">📶</span>
+          <span class="card-title">Red de nodos (padres e hijos)</span>
+        </div>
+        <span class="red-resumen" id="red-resumen">—</span>
+      </div>
+      <div class="red-grid">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nodo</th><th>Estado</th><th>Nivel</th><th>Padre / WiFi</th><th>Señal</th>
+                <th>Temp · Hum</th><th>Gas</th><th>Batería</th><th>Visto</th>
+              </tr>
+            </thead>
+            <tbody id="red-body"></tbody>
+          </table>
+        </div>
+        <div class="red-avisos">
+          <div class="red-avisos-titulo">Últimos avisos</div>
+          <div id="red-avisos"></div>
         </div>
       </div>
     </section>
@@ -382,12 +410,15 @@
     setInterval(updateClock, 1000);
   </script>
 
-  <script src="js/map.js"></script>
-  <script src="js/charts.js"></script>
-  <script src="js/alerts.js"></script>
-  <script src="js/ia.js"></script>
-  <script src="js/beep_alerta.js"></script>
-  <script src="js/panel_ajustes.js"></script>
+  <!-- ?v=3: netlify.toml guarda /js y /css en caché un año; cambiar el número obliga a bajar la versión nueva -->
+  <script src="js/admin.js?v=3"></script>
+  <script src="js/map.js?v=3"></script>
+  <script src="js/charts.js?v=3"></script>
+  <script src="js/alerts.js?v=3"></script>
+  <script src="js/red.js?v=3"></script>
+  <script src="js/ia.js?v=3"></script>
+  <script src="js/beep_alerta.js?v=3"></script>
+  <script src="js/panel_ajustes.js?v=3"></script>
 
 </body>
 </html>

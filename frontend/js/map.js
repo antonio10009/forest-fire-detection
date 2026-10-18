@@ -41,13 +41,34 @@ const iconRojo = L.divIcon({
   iconSize: [20, 20]
 });
 
+const iconSinSenal = L.divIcon({
+  className: '',
+  html: `<div style="
+    width:16px; height:16px; border-radius:50%;
+    background:#6b7280; border:2px solid #fff;
+    box-shadow:0 0 8px rgba(107,114,128,0.8);
+  "></div>`,
+  iconSize: [16, 16]
+});
+
 function getIcon(nivel) {
-  if (nivel === 'ROJO')     return iconRojo;
-  if (nivel === 'AMARILLO') return iconAmarillo;
+  if (nivel === 'ROJO')      return iconRojo;
+  if (nivel === 'AMARILLO')  return iconAmarillo;
+  if (nivel === 'SIN_SENAL') return iconSinSenal;
   return iconVerde;
 }
 
+function textoNivel(nivel) {
+  return nivel === 'SIN_SENAL' ? 'SIN SEÑAL' : nivel;
+}
+
+// Sin coordenadas (0,0 o vacías) el nodo no va al mapa: quedaría en el mar frente a África.
+function tieneCoordenadas(s) {
+  return s.latitud != null && s.longitud != null && !(s.latitud === 0 && s.longitud === 0);
+}
+
 const markers = {};
+let mapaCentrado = false;
 
 async function cargarSensores() {
   try {
@@ -63,22 +84,27 @@ async function cargarSensores() {
 
     data.forEach(sensor => {
       const nivel = sensor.ultimo_nivel || 'VERDE';
-      if (markers[sensor.id]) {
+      const popup = `
+          <div style="font-family:monospace; font-size:12px;">
+            <b>📡 ${sensor.nombre}</b><br>
+            📍 ${sensor.ubicacion || 'Sin ubicación'}<br>
+            🟢 Estado: ${textoNivel(nivel)}<br>
+            📌 Lat: ${sensor.latitud?.toFixed(6)}<br>
+            📌 Lng: ${sensor.longitud?.toFixed(6)}
+          </div>
+        `;
+      if (!tieneCoordenadas(sensor)) {
+        if (markers[sensor.id]) { map.removeLayer(markers[sensor.id]); delete markers[sensor.id]; }
+      } else if (markers[sensor.id]) {
         markers[sensor.id].setLatLng([sensor.latitud, sensor.longitud]);
+        markers[sensor.id].setIcon(getIcon(nivel));
+        markers[sensor.id].setPopupContent(popup);
       } else {
         markers[sensor.id] = L.marker(
           [sensor.latitud, sensor.longitud],
           { icon: getIcon(nivel) }
         )
-        .bindPopup(`
-          <div style="font-family:monospace; font-size:12px;">
-            <b>📡 ${sensor.nombre}</b><br>
-            📍 ${sensor.ubicacion}<br>
-            🟢 Estado: ${nivel}<br>
-            📌 Lat: ${sensor.latitud?.toFixed(6)}<br>
-            📌 Lng: ${sensor.longitud?.toFixed(6)}
-          </div>
-        `)
+        .bindPopup(popup)
         .addTo(map);
       }
 
@@ -87,16 +113,18 @@ async function cargarSensores() {
       item.innerHTML = `
         <div class="sensor-dot ${nivel.toLowerCase()}"></div>
         <div class="sensor-info">
-          <div class="sensor-name">${sensor.nombre}</div>
-          <div class="sensor-location">${sensor.ubicacion}</div>
+          <div class="sensor-name">${sensor.nombre}${nivel === 'SIN_SENAL' ? ' · SIN SEÑAL' : ''}</div>
+          <div class="sensor-location">${sensor.ubicacion || 'Sin ubicación'}</div>
         </div>
       `;
       lista.appendChild(item);
     });
 
-    // Centrar mapa automáticamente en el primer sensor con GPS válido
-    if (data.length > 0 && data[0].latitud) {
-      map.setView([data[0].latitud, data[0].longitud], 16);
+    // Centrar el mapa una sola vez (después el usuario puede moverlo) en el primer sensor con posición
+    const primero = data.find(tieneCoordenadas);
+    if (!mapaCentrado && primero) {
+      map.setView([primero.latitud, primero.longitud], 16);
+      mapaCentrado = true;
     }
 
   } catch (err) {

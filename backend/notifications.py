@@ -19,6 +19,7 @@ def disparar_alerta_incendio(
     db:            Session = None,   # ← recibe la sesión de sensors.py
     latitud:       float   = None,
     longitud:      float   = None,
+    llama:         bool    = True,
 ):
     """
     Envía alerta WhatsApp a todos los suscriptores activos.
@@ -38,7 +39,8 @@ def disparar_alerta_incendio(
 
     # 2. Armar mensaje
     import datetime
-    ahora     = datetime.datetime.now()
+    from zoneinfo import ZoneInfo
+    ahora     = datetime.datetime.now(ZoneInfo("America/Santiago"))   # Render corre en UTC
     hora_str  = ahora.strftime("%H:%M")
     fecha_str = ahora.strftime("%d/%m/%Y")
 
@@ -51,12 +53,10 @@ def disparar_alerta_incendio(
         "━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "🔬 *Lecturas del sensor:*\n"
         f"   🌡️ Temperatura : *{temperatura} °C*\n"
-        f"   💨 Humo (CO)   : *{humo_ppm} ppm*\n"
-        "   🔥 Llama IR    : *DETECTADA* ⚠️\n\n"
+        f"   💨 Humo/gas    : *{humo_ppm}* (índice del sensor MQ)\n"
+        f"   🔥 Llama IR    : *{'DETECTADA ⚠️' if llama else 'no detectada'}*\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "🚒 Bomberos — notificado ✅\n"
-        "🌲 CONAF — notificado ✅\n"
-        "🏛️ SENAPRED — notificado ✅\n\n"
+        "📞 Si confirmas fuego: Bomberos *132* · CONAF *130*\n\n"
         "📡 *Forest Fire* — Sistema IoT de Detección Temprana"
     )
 

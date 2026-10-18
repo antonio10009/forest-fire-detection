@@ -184,6 +184,16 @@ async function generarInsights() {
 }
 
 // ─── CHATBOT ───────────────────────────────────────────────────
+// Umbrales vigentes: se leen de /api/config (los mismos que edita el panel de ajustes)
+async function obtenerUmbrales() {
+  try {
+    const res = await fetch(`${API_IA}/api/config`);
+    if (res.ok) return await res.json();
+  } catch (e) { console.error('Error leyendo /api/config:', e); }
+  return { temp_amarillo_min: 45, temp_rojo_min: 55, humo_amarillo_min: 200, humo_rojo_min: 500,
+           humedad_riesgo_max: 30, humedad_normal_min: 40, humedad_normal_max: 70 };
+}
+
 async function procesarPregunta(pregunta) {
   const texto = pregunta.toLowerCase().trim();
 
@@ -196,7 +206,8 @@ async function procesarPregunta(pregunta) {
       const data = await res.json();
       if (data && data.length > 0) {
         const d = data[0];
-        return `🌡️ **Temperatura del sensor:**\n• Promedio: ${d.temp_promedio}°C\n• Máxima: ${d.temp_max}°C\n• Mínima: ${d.temp_min || '—'}°C\n\nEl umbral de alerta AMARILLO es 50°C y ROJO es 70°C.`;
+        const u = await obtenerUmbrales();
+        return `🌡️ **Temperatura del sensor:**\n• Promedio: ${d.temp_promedio}°C\n• Máxima: ${d.temp_max}°C\n• Mínima: ${d.temp_min || '—'}°C\n\nUmbral AMARILLO: ${u.temp_amarillo_min}°C · ROJO: ${u.temp_rojo_min}°C (configurables en Ajustes).\nHumedad: ≤ ${u.humedad_riesgo_max}% riesgo alto · ${u.humedad_normal_min}-${u.humedad_normal_max}% normal.`;
       }
       return '🌡️ No hay datos de temperatura disponibles aún.';
     }
@@ -209,7 +220,8 @@ async function procesarPregunta(pregunta) {
         const ultimas = data.slice(-5);
         const promedioHumo = (ultimas.reduce((s, l) => s + l.humo_ppm, 0) / ultimas.length).toFixed(1);
         const maxHumo = Math.max(...ultimas.map(l => l.humo_ppm));
-        return `💨 **Nivel de humo (últimas 5 lecturas):**\n• Promedio: ${promedioHumo} ppm\n• Máximo: ${maxHumo} ppm\n\nEl umbral AMARILLO es 200 ppm y ROJO es 500 ppm. Valores normales están entre 70-150 ppm.`;
+        const u = await obtenerUmbrales();
+        return `💨 **Nivel de humo (últimas 5 lecturas):**\n• Promedio: ${promedioHumo}\n• Máximo: ${maxHumo}\n\nUmbral AMARILLO: ${u.humo_amarillo_min} · ROJO: ${u.humo_rojo_min} (configurables en Ajustes).\nNota: los sensores MQ entregan un índice relativo (subida sobre su línea base), no ppm calibradas.`;
       }
       return '💨 No hay datos de humo disponibles aún.';
     }
@@ -276,14 +288,14 @@ async function procesarPregunta(pregunta) {
       const data = await res.json();
       if (data && data.length > 0) {
         const s = data[0];
-        return `📡 **Sensor registrado:**\n• Nombre: ${s.nombre}\n• Ubicación: ${s.ubicacion}\n• Coordenadas GPS: ${s.latitud}, ${s.longitud}\n• Estado: ${s.activo ? 'Activo ✓' : 'Inactivo ✗'}\n\nEl sensor envía datos cada 5 minutos usando deep sleep para conservar batería solar.`;
+        return `📡 **Sensor registrado:**\n• Nombre: ${s.nombre}\n• Ubicación: ${s.ubicacion}\n• Coordenadas GPS: ${s.latitud}, ${s.longitud}\n• Estado: ${s.activo ? 'Activo ✓' : 'Inactivo ✗'}\n\nLos nodos miden 4 veces por segundo y se comunican entre sí por ESP-NOW; el nodo padre envía la alerta por WhatsApp.`;
       }
       return '📡 No se encontraron sensores registrados.';
     }
 
     // BATERÍA / ENERGÍA / SOLAR
     if (/batería|bateria|solar|energía|energia|panel|carga/i.test(texto)) {
-      return `⚡ **Sistema de energía:**\n• Panel solar: 6V 3.3W\n• Batería: 18650 Li-Ion 2600mAh\n• Cargador: TP4056\n• Autonomía sin sol: ~24-48 horas\n• Modo ahorro: Deep Sleep entre lecturas (5 min)\n• Consumo activo: ~240mA | Consumo dormido: <0.01mA\n\nEl sistema es completamente autónomo una vez instalado.`;
+      return `⚡ **Sistema de energía (prototipo):**\n• Panel solar: 6V 3.3W\n• Batería: 18650 Li-Ion 2600mAh\n• Cargador: TP4056\n• Consumo: ~200-240 mA continuos (el sensor de gas MQ debe estar siempre caliente)\n• Autonomía sin sol: ~7-8 horas\n\nPara autonomía de varios días se necesita una batería y un panel más grandes; el sensor de gas no admite deep sleep.`;
     }
 
     // MODELO IA

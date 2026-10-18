@@ -10,6 +10,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 
 from backend.database import get_db
 from backend.models.suscriptor import Suscriptor
+from backend.seguridad import exigir_admin
 
 router = APIRouter()
 
@@ -76,10 +77,10 @@ def webhook_whatsapp(
 
 
 # ══════════════════════════════════════════════════════════════
-# ADMIN — Ver lista de suscriptores activos
+# ADMIN — Ver lista de suscriptores activos (X-Admin-Key)
 # GET /api/suscriptores/
 # ══════════════════════════════════════════════════════════════
-@router.get("/")
+@router.get("/", dependencies=[Depends(exigir_admin)])
 def listar_suscriptores(
     solo_activos: bool = Query(True),
     db: Session = Depends(get_db)
@@ -106,10 +107,10 @@ def listar_suscriptores(
 
 
 # ══════════════════════════════════════════════════════════════
-# ADMIN — Agregar número manualmente (sin esperar que escriban)
+# ADMIN — Agregar número manualmente (sin esperar que escriban) (X-Admin-Key)
 # POST /api/suscriptores/agregar?numero=+56912345678
 # ══════════════════════════════════════════════════════════════
-@router.get("/agregar")
+@router.get("/agregar", dependencies=[Depends(exigir_admin)])
 def agregar_suscriptor(
     numero: str = Query(..., description="Número en formato +56XXXXXXXXX"),
     nombre: str = Query(None),
