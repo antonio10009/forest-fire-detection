@@ -1,6 +1,6 @@
 # Servidor v3 (etapa 2 del plan)
 
-El servidor de Render ahora recibe a los padres v3, avisa por WhatsApp sin repetir y avisa si un nodo deja de reportar. Las rutas viejas siguen funcionando. Las tablas nuevas (`red_nodos` y `red_alertas`) se crean solas al arrancar, y las que ya tienes no se tocan.
+El servidor de Render ahora recibe a los padres v3, avisa por WhatsApp sin repetir y avisa si un nodo deja de reportar. Las rutas viejas siguen funcionando. Las tablas nuevas (`red_nodos`, `red_alertas` y `red_envios`) se crean solas al arrancar, y las que ya tienes no se tocan.
 
 ## Qué hace
 
@@ -22,6 +22,17 @@ El servidor de Render ahora recibe a los padres v3, avisa por WhatsApp sin repet
   - un hijo lleva 2 min en su padre de respaldo, y cuando vuelve al principal;
   - la batería baja de 3,4 V;
   - un nodo vuelve a reportar.
+- **Segundos hasta el celular.** Por cada WhatsApp de un aviso, Twilio le informa al servidor (`POST /api/v3/twilio/estado`, con su firma) cuándo salió, cuándo llegó al celular y cuándo se leyó. Cada aviso queda con los segundos de cada tramo:
+
+  | Tramo | Lo mide |
+  |---|---|
+  | Detección de la llama (`deteccion_s`) | El hijo |
+  | Radio hijo → padre (`radio_s`) | El hijo |
+  | Paso por el padre (`padre_s`) | El padre |
+  | Del servidor al primer celular (`celular_s`) y al último (`ultimo_celular_s`) | El servidor, con lo que informa Twilio |
+  | Total (`total_s`) | La suma. No incluye el viaje por internet del padre al servidor |
+
+  **`GET /api/v3/alertas.csv`** baja los últimos 500 avisos con esos tiempos para Excel (punto y coma y decimales con coma); `?limite=` cambia la cantidad. En la web, cada aviso dice "llegó al celular en X s". Los avisos que el padre mandó directo, sin el servidor, no tienen ese dato.
 - **Web:** la tarjeta nueva "Red de nodos" muestra cada padre e hijo, con estado, nivel, padre, señal, sensores, batería y hace cuánto se vio, más los últimos avisos. Además, cada nodo aparece en el mapa y en "Estado de nodos" (gris si está sin señal), y sus lecturas se guardan cada 5 min en la tabla de siempre.
 
 ## Cambios que se notan
@@ -56,6 +67,7 @@ El servidor de Render ahora recibe a los padres v3, avisa por WhatsApp sin repet
 | `MINUTOS_SIN_SENAL` | 10 por defecto |
 | `BATERIA_BAJA_MV` | 3400 por defecto |
 | `PERMITIR_LECTURA_SIN_CLAVE` | `1` solo mientras queden nodos v2 |
+| `URL_PUBLICA` | No hace falta en Render, que entrega su dirección solo (`RENDER_EXTERNAL_URL`). En otro servidor, su dirección `https://...` para que Twilio informe cuándo llega cada WhatsApp |
 
 Para crear una clave: `python -c "import secrets; print(secrets.token_urlsafe(24))"`.
 
@@ -120,8 +132,9 @@ sh firmware/herramientas/simulacion_v3/ejecutar.sh      # opcional: genera lo qu
 python -m pytest backend/pruebas -q
 ```
 
-Usa SQLite y no manda nada de verdad. Hoy pasan **36 de 36**:
+Usa SQLite y no manda nada de verdad. Hoy pasan **49 de 49**:
 - 18 del servidor: claves, alerta que llega 3 veces y avisa 1, dos padres a la vez, el padre que ya avisó directo, WhatsApp caído, pruebas a técnicos, plantillas, avisos técnicos que nunca van al público, el fuego que sigue, nodos sin señal y de vuelta, respaldo, batería, edición de nodos.
+- 1 de las lecturas de hoy en la web, 5 de la revisión del estado en Twilio (un WhatsApp aceptado que después falla cuenta como fallido) y 7 de los segundos hasta el celular (firma de Twilio, estados desordenados, el Excel).
 - 18 que repiten contra el servidor real todo lo que mandaron los `.ino` en cada escenario de la simulación. El servidor decide igual que el modelo de la simulación en cada aviso.
 
 No probé aquí la conexión real con Twilio ni con el Postgres de Render.

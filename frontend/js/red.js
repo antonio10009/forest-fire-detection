@@ -58,6 +58,7 @@ function filaAviso(a) {
     a.recordatorio ? 'el fuego sigue' : '',
     a.padres ? 'vía ' + esc(a.padres) : '',
     a.estado_aviso ? esc(a.estado_aviso) : '',
+    a.celular_s != null ? `llegó al celular en ${a.celular_s.toFixed(1).replace('.', ',')} s` : '',
     a.veces > 1 ? `llegó ${a.veces} veces` : '',
   ].filter(Boolean).join(' · ');
   return `<div class="red-aviso"><div>${icono} <b>${esc(a.nodo)}</b> · ${tipo}</div><div class="red-sub">${fecha}${extra ? ' · ' + extra : ''}</div></div>`;

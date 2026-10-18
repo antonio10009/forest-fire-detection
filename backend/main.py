@@ -10,7 +10,7 @@ from backend.database import engine, Base
 from backend.models.sensor import Sensor, Lectura, Alerta
 from backend.models.config import Configuracion
 from backend.models.suscriptor import Suscriptor
-from backend.models.red import NodoRed, AlertaRed
+from backend.models.red import NodoRed, AlertaRed, EnvioWhatsApp
 from backend.routers import sensors, alerts, stats, config
 from backend.routers import ml
 from backend.routers import suscriptores

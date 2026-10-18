@@ -37,9 +37,12 @@ class Envios:
         self.wa = []          # (numero, texto, variables, content_sid)
         self.wa_ok = True
 
-    def whatsapp(self, numero, texto, variables=None, content_sid=""):
+    def whatsapp(self, numero, texto, variables=None, content_sid="", al_crear=None):
         with self.lock:
             self.wa.append((numero, texto, variables, content_sid))
+            sid = f"SMprueba{len(self.wa)}"
+        if al_crear and self.wa_ok:
+            al_crear(numero, sid)
         return self.wa_ok
 
     def total(self):

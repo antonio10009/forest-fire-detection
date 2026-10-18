@@ -5,6 +5,8 @@
 #   POST /api/v3/alerta   (X-Api-Key)  aviso de incendio o de prueba; el servidor avisa por WhatsApp
 #   GET  /api/v3/nodos                  estado de la red para la web
 #   GET  /api/v3/alertas                últimos avisos
+#   GET  /api/v3/alertas.csv            avisos con los segundos de cada tramo, para Excel (pruebas CONAF)
+#   POST /api/v3/twilio/estado          Twilio informa si cada WhatsApp llegó al celular (firma X-Twilio-Signature)
 #   GET  /api/v3/revisar                revisa nodos sin señal (también corre solo cada minuto)
 #   PUT/DELETE /api/v3/nodos/{codigo} (X-Admin-Key)  ubicación, coordenadas o borrar un nodo dado de baja
 #
@@ -12,20 +14,24 @@
 # respaldo a la vez). Se reconoce por (nodo, arranque_id, alerta_id, tipo) y se avisa UNA sola vez.
 
 import asyncio
+import csv
+import io
 import os
 import threading
 from datetime import timedelta
 from typing import List, Literal, Optional
+from urllib.parse import parse_qsl
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from backend import avisos_v3
 from backend.database import SessionLocal, get_db
 from backend.horario import a_local, ahora_utc, iso_utc
-from backend.models.red import AlertaRed, NodoRed
+from backend.models.red import AlertaRed, EnvioWhatsApp, NodoRed
 from backend.models.sensor import Alerta, Lectura, Sensor
 from backend.seguridad import exigir_admin, exigir_dispositivo
 
@@ -208,7 +214,36 @@ def _nodo_json(n: NodoRed, ahora) -> dict:
     }
 
 
-def _alerta_json(a: AlertaRed) -> dict:
+def _segundos(ms):
+    return None if ms is None else ms / 1000
+
+
+def _tiempos(a: AlertaRed, envios) -> dict:
+    """Segundos de cada tramo del aviso. La detección y la radio las mide el hijo, el paso por el padre lo
+    mide el padre, y desde que llega al servidor hasta el celular lo mide el servidor (con lo que informa
+    Twilio). El viaje por internet del padre al servidor no entra en el total."""
+    llegadas = sorted((e.entregado_en - a.recibida_en).total_seconds()
+                      for e in envios if e.entregado_en and a.recibida_en)
+    t = {"deteccion_s": _segundos(a.ms_llama_confirm), "radio_s": _segundos(a.ms_radio),
+         "padre_s": _segundos(a.ms_padre),
+         "celular_s": round(llegadas[0], 2) if llegadas else None,             # el primer celular
+         "ultimo_celular_s": round(llegadas[-1], 2) if llegadas else None,
+         "celulares": f"{len(llegadas)}/{len(envios)}" if envios else None}
+    partes = [t["deteccion_s"], t["radio_s"], t["padre_s"], t["celular_s"]]
+    t["total_s"] = round(sum(partes), 2) if None not in partes else None
+    return t
+
+
+def _envios_de(db: Session, alertas) -> dict:
+    ids = [a.id for a in alertas]
+    por_alerta = {}
+    if ids:
+        for e in db.query(EnvioWhatsApp).filter(EnvioWhatsApp.alerta_id.in_(ids)).all():
+            por_alerta.setdefault(e.alerta_id, []).append(e)
+    return por_alerta
+
+
+def _alerta_json(a: AlertaRed, envios=()) -> dict:
     return {
         "id": a.id, "nodo": a.nodo, "padre": a.padre, "padres": a.padres, "tipo": a.tipo,
         "prueba": bool(a.prueba), "recordatorio": bool(a.recordatorio),
@@ -218,6 +253,7 @@ def _alerta_json(a: AlertaRed) -> dict:
         "rssi": a.rssi, "padre_respaldo": bool(a.padre_respaldo),
         "latitud": a.latitud, "longitud": a.longitud, "coord_del_padre": bool(a.coord_del_padre),
         "ms_llama_confirm": a.ms_llama_confirm, "ms_radio": a.ms_radio, "ms_padre": a.ms_padre,
+        **_tiempos(a, envios),
     }
 
 
@@ -276,6 +312,64 @@ def _registrar_resultado(alerta_id: int, resumen: str):
             print(f"[Red v3] aviso {a.nodo} n° {a.alerta_id}: {resumen}")
     finally:
         db.close()
+
+
+def _registrar_envio(alerta_id: int, numero: str, sid: str):
+    with _candado:
+        db = SessionLocal()
+        try:
+            e = db.query(EnvioWhatsApp).filter(EnvioWhatsApp.sid == sid).first()
+            if e is None:
+                e = EnvioWhatsApp(sid=sid)
+                db.add(e)
+            e.alerta_id, e.numero = alerta_id, numero
+            db.commit()
+        finally:
+            db.close()
+
+
+# Twilio manda los estados de cada mensaje; pueden llegar desordenados.
+_ORDEN = {"accepted": 0, "queued": 1, "sending": 2, "sent": 3, "delivered": 4, "read": 5}
+_FALLAS = {"failed", "undelivered", "canceled"}
+
+
+def _guardar_estado(sid: str, estado: str, error: Optional[str]):
+    ahora = ahora_utc()
+    with _candado:
+        db = SessionLocal()
+        try:
+            e = db.query(EnvioWhatsApp).filter(EnvioWhatsApp.sid == sid).first()
+            if e is None:                       # el estado llegó antes que el registro del envío
+                e = EnvioWhatsApp(sid=sid)
+                db.add(e)
+            if estado == "sent" and not e.enviado_en:
+                e.enviado_en = ahora
+            elif estado == "delivered" and not e.entregado_en:
+                e.entregado_en = ahora
+            elif estado == "read" and not e.leido_en:
+                e.leido_en = ahora
+            if estado in _FALLAS:
+                e.estado, e.error = estado, (error or "")[:10] or None
+            elif e.estado not in _FALLAS and _ORDEN.get(estado, -1) > _ORDEN.get(e.estado, -1):
+                e.estado = estado
+            db.commit()
+        finally:
+            db.close()
+
+
+@router.post("/twilio/estado", include_in_schema=False)
+async def estado_twilio(request: Request):
+    """Twilio avisa cada cambio de estado de un WhatsApp (sent, delivered, read, failed...)."""
+    from twilio.request_validator import RequestValidator
+    datos = dict(parse_qsl((await request.body()).decode("utf-8", "replace"), keep_blank_values=True))
+    url, token = avisos_v3.url_estado(), os.getenv("TWILIO_AUTH_TOKEN", "").strip()
+    firma = request.headers.get("X-Twilio-Signature", "")
+    if not url or not token or not RequestValidator(token).validate(url, datos, firma):
+        raise HTTPException(status_code=403, detail="Firma de Twilio inválida")
+    if datos.get("MessageSid"):
+        await run_in_threadpool(_guardar_estado, datos["MessageSid"],
+                                (datos.get("MessageStatus") or "").lower(), datos.get("ErrorCode"))
+    return Response(status_code=204)
 
 
 def _alerta_web(db: Session, a: AlertaRed, n: NodoRed):
@@ -342,7 +436,8 @@ def recibir_alerta(d: AlertaIn, db: Session = Depends(get_db)):
         return {"ok": True, "id": a_id, "duplicada": duplicada, "avisada": avisada}
 
     r = avisos_v3.enviar(numeros, texto, variables, avisos_v3.plantilla(clase), plazo_s=PLAZO_AVISO_S,
-                         al_terminar=lambda resumen: _registrar_resultado(a_id, resumen))
+                         al_terminar=lambda resumen: _registrar_resultado(a_id, resumen),
+                         al_crear=lambda numero, sid: _registrar_envio(a_id, numero, sid))
     with _candado:
         a = db.get(AlertaRed, a_id)
         a.enviando = False
@@ -462,7 +557,32 @@ def listar_nodos(db: Session = Depends(get_db)):
 @router.get("/alertas")
 def listar_alertas(limite: int = Query(20, ge=1, le=200), db: Session = Depends(get_db)):
     filas = db.query(AlertaRed).order_by(AlertaRed.id.desc()).limit(limite).all()
-    return [_alerta_json(a) for a in filas]
+    envios = _envios_de(db, filas)
+    return [_alerta_json(a, envios.get(a.id, [])) for a in filas]
+
+
+def _num(x) -> str:
+    return "" if x is None else f"{x:.2f}".replace(".", ",")
+
+
+@router.get("/alertas.csv")
+def exportar_alertas(limite: int = Query(500, ge=1, le=5000), db: Session = Depends(get_db)):
+    """Avisos con los segundos de cada tramo, para abrir en Excel (punto y coma, decimales con coma)."""
+    filas = db.query(AlertaRed).order_by(AlertaRed.id.desc()).limit(limite).all()
+    envios = _envios_de(db, filas)
+    salida = io.StringIO()
+    w = csv.writer(salida, delimiter=";", lineterminator="\r\n")
+    w.writerow(["fecha_hora_chile", "nodo", "padres", "tipo", "prueba", "rssi_dbm", "deteccion_s", "radio_s",
+                "padre_s", "servidor_a_celular_s", "ultimo_celular_s", "celulares_que_recibieron", "total_s",
+                "estado_aviso"])
+    for a in filas:
+        t = _tiempos(a, envios.get(a.id, []))
+        w.writerow([a_local(a.recibida_en).strftime("%d-%m-%Y %H:%M:%S"), a.nodo, a.padres or a.padre or "",
+                    a.tipo, "sí" if a.prueba else "no", "" if a.rssi is None else a.rssi,
+                    _num(t["deteccion_s"]), _num(t["radio_s"]), _num(t["padre_s"]), _num(t["celular_s"]),
+                    _num(t["ultimo_celular_s"]), t["celulares"] or "", _num(t["total_s"]), a.estado_aviso or ""])
+    return Response("\ufeff" + salida.getvalue(), media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": 'attachment; filename="avisos_forestfire.csv"'})
 
 
 @router.get("/revisar")
