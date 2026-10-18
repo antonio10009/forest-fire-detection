@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, Date
 from backend.database import get_db
 from backend.models.sensor import Lectura, Alerta, Sensor
+from backend.horario import inicio_de_hoy_utc
 
 router = APIRouter()
 
@@ -12,6 +13,7 @@ def resumen_general(db: Session = Depends(get_db)):
     total_sensores  = db.query(Sensor).filter(Sensor.activo == True).count()
     total_alertas   = db.query(Alerta).filter(Alerta.activa == True).count()
     total_lecturas  = db.query(Lectura).count()
+    lecturas_hoy    = db.query(Lectura).filter(Lectura.registrado_en >= inicio_de_hoy_utc()).count()
     alertas_hoy     = db.query(Alerta).filter(
         cast(Alerta.creada_en, Date) == func.current_date()
     ).count()
@@ -20,6 +22,7 @@ def resumen_general(db: Session = Depends(get_db)):
         "total_sensores":  total_sensores,
         "alertas_activas": total_alertas,
         "total_lecturas":  total_lecturas,
+        "lecturas_hoy":    lecturas_hoy,
         "alertas_hoy":     alertas_hoy,
     }
 

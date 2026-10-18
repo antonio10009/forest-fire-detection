@@ -79,8 +79,6 @@ async function cargarHistorial() {
       tbody.appendChild(tr);
     });
 
-    document.getElementById('total-readings').textContent = data.length;
-
   } catch (err) {
     console.error('Error cargando historial:', err);
   }
