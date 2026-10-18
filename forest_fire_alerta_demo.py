@@ -1,6 +1,7 @@
 """
 Forest Fire - Simulación de Alerta de Incendio Forestal
-Demo para reunión CONAF - 30 septiembre 2026
+Demo para reunión CONAF. El mensaje va marcado como SIMULACIÓN y no
+afirma haber notificado a ninguna institución.
 
 REQUISITOS:
   pip install twilio
@@ -74,22 +75,21 @@ print("=" * 60)
 print("\n[1/2] Enviando alerta de emergencia...")
 
 alerta = (
+    "🧪 *SIMULACIÓN — NO ES UN INCENDIO REAL* 🧪\n"
     "🔴🔴 *ALERTA ROJA — INCENDIO FORESTAL* 🔴🔴\n"
     "━━━━━━━━━━━━━━━━━━━━━━━━\n"
     f"📍 *Zona afectada:* {ZONA}\n"
     f"🏘️ *Comuna:* {COMUNA}  ·  {REGION}\n"
     f"📅 {fecha_str}  🕐 {hora_str} hrs\n\n"
     "━━━━━━━━━━━━━━━━━━━━━━━━\n"
-    "🔬 *Lecturas del sensor Forest Fire:*\n"
-    "   🔥 Llama infrarroja : *DETECTADA* ⚠️\n"
-    "   💨 Gas MQ-135 (CO/Humo) : *NIVEL CRÍTICO* ⚠️\n"
-    "   🌡️ Temperatura : *+38 °C*\n"
-    "   💧 Humedad relativa : *12 %*\n"
-    "   💨 Velocidad del viento : *32 km/h* (dirección NE)\n\n"
+    "🔬 *Lecturas simuladas (ejemplo):*\n"
+    "   🔥 Llama infrarroja (YG1006) : *DETECTADA* ⚠️\n"
+    "   💨 Gas/humo (MQ-2 / MQ-9) : *sobre la línea base* ⚠️\n"
+    "   🌡️ Temperatura : *38 °C*\n"
+    "   💧 Humedad relativa : *12 %*\n\n"
     "━━━━━━━━━━━━━━━━━━━━━━━━\n"
-    f"🚒 *{CUARTEL}* — notificado ✅\n"
-    f"🌲 *CONAF {REGION}* — notificado ✅\n"
-    f"🏛️ *SENAPRED {REGION}* — notificado ✅\n\n"
+    f"🚒 Cuartel más cercano: *{CUARTEL}*\n"
+    "📞 Si confirmas fuego: Bomberos *132* · CONAF *130*\n\n"
     "📌 *Ubicación GPS exacta en el siguiente mensaje →*\n\n"
     "━━━━━━━━━━━━━━━━━━━━━━━━\n"
     f"📡 *Forest Fire*  ·  Nodo `{NODO_ID}`\n"

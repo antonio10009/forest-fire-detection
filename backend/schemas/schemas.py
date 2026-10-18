@@ -32,6 +32,9 @@ class LecturaCreate(LecturaBase):
     latitud: Optional[float] = None
     longitud: Optional[float] = None
     llama: Optional[bool] = False
+    # True cuando el nodo ESP32 ya envió el WhatsApp por su cuenta (vía rápida).
+    # No se guarda en la base: solo evita que el backend mande un segundo aviso.
+    notificado_por_dispositivo: Optional[bool] = False
 
 class LecturaResponse(LecturaBase):
     id: int

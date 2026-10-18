@@ -37,7 +37,7 @@ async function guardarConfiguracion() {
   mostrarMsg(msg,'','');
 
   try {
-    const res = await fetch(`${API_CONFIG}/api/config`, {
+    const res = await fetchAdmin(`${API_CONFIG}/api/config/`, {   // con "/" final: sin redirección
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -47,7 +47,8 @@ async function guardarConfiguracion() {
         humedad_normal_max: humNormalMax
       })
     });
-    if (res.ok) {
+    if (!res) { mostrarMsg(msg,'🔒 Sin la clave de administrador no se guardan cambios.','warn'); }
+    else if (res.ok) {
       const data = await res.json();
       const fecha = new Date(data.actualizado_en).toLocaleString('es-CL');
       mostrarMsg(msg,'✅ Configuración guardada correctamente.','ok');

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.config import Configuracion
 from backend.schemas.schemas import ConfiguracionUpdate, ConfiguracionResponse
+from backend.seguridad import exigir_admin
 from datetime import datetime
 
 router = APIRouter()
@@ -25,7 +26,7 @@ def obtener_configuracion(db: Session = Depends(get_db)):
     """Retorna la configuración actual de umbrales."""
     return get_config(db)
 
-@router.put("/", response_model=ConfiguracionResponse)
+@router.put("/", response_model=ConfiguracionResponse, dependencies=[Depends(exigir_admin)])
 def actualizar_configuracion(
     datos: ConfiguracionUpdate,
     db: Session = Depends(get_db)
@@ -33,6 +34,7 @@ def actualizar_configuracion(
     """
     Actualiza los umbrales de clasificación de incendio.
     Los cambios afectan todas las lecturas futuras del ESP32.
+    Requiere la clave de administrador (X-Admin-Key = ADMIN_API_KEY).
     """
     config = get_config(db)
 

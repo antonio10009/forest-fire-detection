@@ -46,7 +46,7 @@ async function cargarAlertas() {
 
 async function desactivarAlerta(id) {
   try {
-    await fetch(`${API_ALERTS}/api/alerts/${id}/desactivar`, {
+    await fetchAdmin(`${API_ALERTS}/api/alerts/${id}/desactivar`, {
       method: 'PUT'
     });
     cargarAlertas();

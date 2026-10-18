@@ -1,13 +1,14 @@
 # backend/routers/sensors.py
 # Versión actualizada con lógica AND para evitar falsos positivos por luz solar
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.sensor import Sensor, Lectura, Alerta
 from backend.models.config import Configuracion
 from backend.schemas.schemas import SensorCreate, SensorResponse, LecturaCreate, LecturaResponse
 from backend.notifications import disparar_alerta_incendio
+from backend.seguridad import exigir_admin, exigir_dispositivo_antiguo
 from typing import List
 
 router = APIRouter()
@@ -94,7 +95,7 @@ def clasificar_nivel(lectura: LecturaCreate, config: Configuracion) -> str:
     return "VERDE"
 
 # ─── CREAR SENSOR ─────────────────────────
-@router.post("/", response_model=SensorResponse)
+@router.post("/", response_model=SensorResponse, dependencies=[Depends(exigir_admin)])
 def crear_sensor(sensor: SensorCreate, db: Session = Depends(get_db)):
     nuevo_sensor = Sensor(**sensor.model_dump())
     db.add(nuevo_sensor)
@@ -116,13 +117,17 @@ def obtener_sensor(sensor_id: int, db: Session = Depends(get_db)):
     return sensor
 
 # ─── RECIBIR LECTURA DEL ESP32 ────────────
-@router.post("/lectura", response_model=LecturaResponse)
+# Firmware v2. Los v3 usan /api/v3/latido y /api/v3/alerta.
+# Pide X-Api-Key, salvo que PERMITIR_LECTURA_SIN_CLAVE=1 (sin clave, cualquiera podía mandar un ROJO
+# y disparar WhatsApp a todos los suscriptores).
+@router.post("/lectura", response_model=LecturaResponse, dependencies=[Depends(exigir_dispositivo_antiguo)])
 def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
 
     config = get_config(db)
     nivel = clasificar_nivel(lectura, config)
 
-    nueva_lectura = Lectura(**lectura.model_dump(), nivel_alerta=nivel)
+    datos = lectura.model_dump(exclude={"notificado_por_dispositivo"})
+    nueva_lectura = Lectura(**datos, nivel_alerta=nivel)
     db.add(nueva_lectura)
 
     # Actualizar GPS y último nivel del sensor
@@ -143,7 +148,8 @@ def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
         )
         db.add(alerta)
 
-        if sensor_obj:
+        # Si el nodo ya avisó por WhatsApp, no se duplica el mensaje.
+        if sensor_obj and not lectura.notificado_por_dispositivo:
             disparar_alerta_incendio(
                 sensor_nombre=sensor_obj.nombre,
                 ubicacion=sensor_obj.ubicacion,
@@ -152,6 +158,7 @@ def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
                 db=db,                          # ← NUEVO
                 latitud=sensor_obj.latitud,     # ← NUEVO
                 longitud=sensor_obj.longitud,   # ← NUEVO
+                llama=bool(lectura.llama),
             )
 
     db.commit()
@@ -159,6 +166,10 @@ def recibir_lectura(lectura: LecturaCreate, db: Session = Depends(get_db)):
     return nueva_lectura
 
 # ─── LISTAR LECTURAS POR SENSOR ───────────
+# Las últimas `limite` (1000 por defecto), en orden cronológico. Antes devolvía todas, y la web
+# las pide cada 10 s: con meses de datos se ponía lenta.
 @router.get("/{sensor_id}/lecturas", response_model=List[LecturaResponse])
-def listar_lecturas(sensor_id: int, db: Session = Depends(get_db)):
-    return db.query(Lectura).filter(Lectura.sensor_id == sensor_id).all()
+def listar_lecturas(sensor_id: int, limite: int = Query(1000, ge=1, le=20000), db: Session = Depends(get_db)):
+    filas = (db.query(Lectura).filter(Lectura.sensor_id == sensor_id)
+             .order_by(Lectura.registrado_en.desc(), Lectura.id.desc()).limit(limite).all())
+    return list(reversed(filas))

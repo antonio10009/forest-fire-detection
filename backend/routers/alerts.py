@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.sensor import Alerta
 from backend.schemas.schemas import AlertaResponse
+from backend.seguridad import exigir_admin
 from typing import List
 
 router = APIRouter()
@@ -18,7 +19,7 @@ def historial_alertas(db: Session = Depends(get_db)):
     return db.query(Alerta).order_by(Alerta.creada_en.desc()).all()
 
 # ─── DESACTIVAR ALERTA ────────────────────
-@router.put("/{alerta_id}/desactivar")
+@router.put("/{alerta_id}/desactivar", dependencies=[Depends(exigir_admin)])
 def desactivar_alerta(alerta_id: int, db: Session = Depends(get_db)):
     alerta = db.query(Alerta).filter(Alerta.id == alerta_id).first()
     if not alerta:
